@@ -252,7 +252,7 @@ module MachikadoNetwork::PKToken {
         while (i < string::length(&name)) {
             let char = vector::borrow(name_raw, i);
             assert!(
-                (48 <= *char && *char <= 57) || (*char == 95) || (97 <= *char && *char <= 122),
+                (48 <= *char && *char <= 57) || (97 <= *char && *char <= 122),
                 ENAME_CHARACTOR_INVALID
             );
             i = i + 1;
