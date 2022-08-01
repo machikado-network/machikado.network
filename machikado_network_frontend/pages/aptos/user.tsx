@@ -57,6 +57,9 @@ const User = () => {
         <div className="container mx-auto my-2 md:my-12">
             <div className="my-6">
                 <h2 className="text-2xl font-bold">PKTokenを作成する</h2>
+                <Link href={"https://scrapbox.io/machikado-network/PKToken"}>
+                    <a className={"text-indigo-500"}>PKTokenとは</a>
+                </Link>
                 <p className="text-sm text-slate-500">IPアドレス、公開鍵、名前をもとにPKTokenを作成してください。</p>
                 <div className="my-2">
                     <p>名前はa-z0-9の中から、まだ使われていないものを入力してください。</p>
