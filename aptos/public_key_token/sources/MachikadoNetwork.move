@@ -128,6 +128,10 @@ module MachikadoNetwork::MachikadoNetwork {
         let token = option::borrow(&token);
         assert!(token.data.creator == signer::address_of(creator) || signer::address_of(creator) == target, EUNPUBLISH_PERMISSION_MISSING);
         vector::remove(tokens, token.nth);
+
+        event::emit_event(&mut store.unpublished_events, UnpublishEvent {
+            id: name
+        });
     }
 
     public entry fun publish(
