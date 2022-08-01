@@ -6,28 +6,6 @@ import requests
 
 
 class PublishTokenClient(RestClient):
-    def get_table_item(self, handle: str, key_type: str, value_type: str, key: Any) -> Any:
-        response = requests.post(f"{self.url}/tables/{handle}/item", json={
-            "key_type": key_type,
-            "value_type": value_type,
-            "key": key,
-        })
-        assert response.status_code == 200, response.text
-        return response.json()
-
-    def publish_module(self, account_from: Account, module_hex: str) -> str:
-        """Publish a new module to the blockchain within the specified account"""
-
-        payload = {
-            "type": "module_bundle_payload",
-            "modules": [
-                {"bytecode": f"0x{module_hex}"},
-            ],
-        }
-        txn_request = self.generate_transaction(account_from.address(), payload)
-        signed_txn = self.sign_transaction(account_from, txn_request)
-        res = self.submit_transaction(signed_txn)
-        return str(res["hash"])
 
     def create_token(self, contract_address: str, account_from: Account, name: str, ip: str, public_key: str):
         payload = {

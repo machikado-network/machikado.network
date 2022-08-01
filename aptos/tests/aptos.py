@@ -40,6 +40,23 @@ class Account:
         return self.signing_key.verify_key.encode().hex()
 
 
+class UserAccount(Account):
+    def __init__(self, address: str, public_key: str, private_key: str):
+        super().__init__()
+        self.addr = address
+        self.public_key = public_key
+        self.private_key = private_key
+
+    def address(self) -> str:
+        return self.addr
+
+    def auth_key(self) -> str:
+        return self.private_key
+
+    def pub_key(self) -> str:
+        return self.public_key
+
+
 class RestClient:
     """A wrapper around the Aptos-core Rest API"""
 
@@ -124,6 +141,51 @@ class RestClient:
             count += 1
         response = requests.get(f"{self.url}/transactions/{txn_hash}")
         assert "success" in response.json(), f"{response.text} - {txn_hash}"
+
+    def account_balance(self, account_address: str) -> Optional[int]:
+        """Returns the test coin balance associated with the account"""
+        return self.account_resource(account_address, "0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>")
+
+    def transfer(self, account_from: Account, recipient: str, amount: int) -> str:
+        """Transfer a given coin amount from a given Account to the recipient's account address.
+        Returns the sequence number of the transaction used to transfer."""
+
+        payload = {
+            "type": "script_function_payload",
+            "function": "0x1::coin::transfer",
+            "type_arguments": ["0x1::aptos_coin::AptosCoin"],
+            "arguments": [
+                f"0x{recipient}",
+                str(amount),
+            ]
+        }
+        txn_request = self.generate_transaction(account_from.address(), payload)
+        signed_txn = self.sign_transaction(account_from, txn_request)
+        res = self.submit_transaction(signed_txn)
+        return str(res["hash"])
+
+    def get_table_item(self, handle: str, key_type: str, value_type: str, key: Any) -> Any:
+        response = requests.post(f"{self.url}/tables/{handle}/item", json={
+            "key_type": key_type,
+            "value_type": value_type,
+            "key": key,
+        })
+        assert response.status_code == 200, response.text
+        return response.json()
+
+    def publish_module(self, account_from: Account, module_hex: str) -> str:
+        """Publish a new module to the blockchain within the specified account"""
+
+        payload = {
+            "type": "module_bundle_payload",
+            "modules": [
+                {"bytecode": f"0x{module_hex}"},
+            ],
+        }
+        txn_request = self.generate_transaction(account_from.address(), payload)
+        signed_txn = self.sign_transaction(account_from, txn_request)
+        res = self.submit_transaction(signed_txn)
+        return str(res["hash"])
 
 
 class FaucetClient:

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+    <path d="M500.254,150.184L480.267,160.583L128.102,747.023L127.808,775.036L142.932,795.475L850.158,795.08L870.81,784.344L871.335,762.438L522.681,162.017L500.254,150.184Z" style="fill:rgb(255,203,0);stroke:black;stroke-width:18.75px;"/>
+    <g transform="matrix(0.876237,0,0,0.876237,52.6557,56.8196)">
+        <g transform="matrix(452.032,0,0,452.032,325.749,755.957)">
+            <path d="M0.595,-0.434C0.595,-0.29 0.605,-0.145 0.611,-0.083C0.585,-0.139 0.529,-0.246 0.483,-0.321L0.231,-0.73C0.212,-0.76 0.195,-0.778 0.15,-0.778C0.111,-0.778 0.087,-0.755 0.087,-0.718L0.087,-0.028C0.087,-0.001 0.107,0.013 0.135,0.013C0.162,0.013 0.182,-0.001 0.182,-0.028L0.182,-0.335C0.182,-0.482 0.174,-0.621 0.168,-0.685C0.191,-0.635 0.241,-0.537 0.281,-0.473L0.546,-0.044C0.571,-0.004 0.587,0.013 0.63,0.013C0.67,0.013 0.69,-0.011 0.69,-0.05L0.69,-0.507L0.654,-0.74C0.652,-0.77 0.621,-0.792 0.601,-0.79C0.594,-0.79 0.585,-0.787 0.579,-0.779C0.57,-0.767 0.562,-0.746 0.555,-0.727L0.595,-0.434Z" style="fill-rule:nonzero;"/>
+        </g>
+        <g transform="matrix(1,0,0,1,5.84742,35.3743)">
+            <path d="M592.169,377.827L549.568,479.346L651.851,459.143" style="fill:none;stroke:black;stroke-width:28.53px;"/>
+        </g>
+    </g>
+    <g transform="matrix(0.515597,-0.856831,0.856831,0.515597,-159.083,523.801)">
+        <text x="114.132px" y="343.962px" style="font-family:'HiraMaruPro-W4', 'Hiragino Maru Gothic Pro', sans-serif;font-size:41.667px;">M<tspan x="151.799px 173.591px 194.591px 217.549px 225.216px 245.466px 267.257px 291.216px 314.257px 326.049px 356.424px 378.257px 392.966px 424.507px 447.549px 463.466px " y="343.962px 343.962px 343.962px 343.962px 343.962px 343.962px 343.962px 343.962px 343.962px 343.962px 343.962px 343.962px 343.962px 343.962px 343.962px 343.962px ">achikado Network</tspan></text>
+    </g>
+</svg>
