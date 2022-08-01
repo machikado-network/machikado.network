@@ -1,4 +1,4 @@
-module MachikadoNetwork::MachikadoNetwork {
+module MachikadoNetwork::PKToken {
     use std::string;
     use aptos_std::table::Table;
     use std::signer;
@@ -94,6 +94,23 @@ module MachikadoNetwork::MachikadoNetwork {
         };
 
         vector::push_back(tokens, token)
+    }
+
+    public entry fun burn_token(
+        creator: &signer,
+        name_bytes: vector<u8>,
+    ) acquires TokenStore {
+        let name = string::utf8(name_bytes);
+        let account_addr = signer::address_of(creator);
+        assert!(exists<TokenStore>(account_addr), error::not_found(ETOKEN_STORE_NOT_FOUND));
+
+        let store = borrow_global_mut<TokenStore>(account_addr);
+        let tokens = &mut store.tokens;
+
+        let token = get_token(tokens, name);
+        assert!(option::is_some(&token), error::not_found(ETOKEN_NOT_FOUND));
+        let token = option::borrow(&token);
+        vector::remove(tokens, token.nth);
     }
 
     public entry fun create_published_token_store(creator: &signer) {
@@ -350,6 +367,34 @@ module MachikadoNetwork::MachikadoNetwork {
         unpublish(&account, b"sumidora", signer::address_of(&account2));
 
         let store = borrow_global_mut<PublishedTokenStore>(signer::address_of(&account2));
+        assert!(vector::length(&store.tokens) == 0, ENO_MESSAGE);
+    }
+
+    #[test(account = @0x1)]
+    public entry fun test_burn(account: signer) acquires TokenStore {
+        create_token(
+            &account,
+            b"sumidora",
+            b"10.50.24.5",
+            b"A12345B",
+        );
+
+        let token = get_user_token(signer::address_of(&account), string::utf8(b"sumidora"));
+        assert!(
+            token.ip_address == string::utf8(b"10.50.24.5"),
+            ENO_MESSAGE
+        );
+        assert!(
+            token.public_key == string::utf8(b"A12345B"),
+            ENO_MESSAGE
+        );
+
+        burn_token(
+            &account,
+            b"sumidora"
+        );
+
+        let store = borrow_global_mut<TokenStore>(signer::address_of(&account));
         assert!(vector::length(&store.tokens) == 0, ENO_MESSAGE);
     }
 }

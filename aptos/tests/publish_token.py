@@ -56,6 +56,19 @@ class PublishTokenClient(RestClient):
         res = self.execute_transaction_with_payload(account_from, payload)
         return str(res["hash"])
 
+    def unpublish(self, contract_address: str, account_from: Account, name: str, account_to: Account):
+        payload = {
+            "type": "script_function_payload",
+            "function": f"0x{contract_address}::MachikadoNetwork::unpublish",
+            "type_arguments": [],
+            "arguments": [
+                name.encode("utf-8").hex(),
+                "0x" + account_to.address(),
+                ]
+        }
+        res = self.execute_transaction_with_payload(account_from, payload)
+        return str(res["hash"])
+
     def create_published_token_store(self, contract_address: str, account_from: Account):
         payload = {
             "type": "script_function_payload",
@@ -117,8 +130,16 @@ if __name__ == "__main__":
 
     print(f"New value: {client.get_published_token_store(alice.address(), bob.address())}")
 
-    store = client.account_resource(bob.address(), f"0x{alice.address()}::MachikadoNetwork::PublishedTokenStore")["data"]["tokens"]["handle"]
-    print(store)
-    r = client.get_table_item(store, "0x1::string::String", f"0x{alice.address()}::MachikadoNetwork::PublishedToken", "ogura")
-    print(r)
+    tokens = client.account_resource(bob.address(), f"0x{alice.address()}::MachikadoNetwork::PublishedTokenStore")["data"]["tokens"]
+    assert len(tokens) == 1
+    print(f"{tokens=}")
+
+    print("unpublish ogura")
+    tx_hash = client.unpublish(alice.address(), alice, "ogura", bob)
+    client.wait_for_transaction(tx_hash)
+    print(f"New value: {client.get_published_token_store(alice.address(), bob.address())}")
+
+    tokens = client.account_resource(bob.address(), f"0x{alice.address()}::MachikadoNetwork::PublishedTokenStore")["data"]["tokens"]
+    assert len(tokens) == 0
+    print(f"{tokens=}")
 

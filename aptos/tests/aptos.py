@@ -12,7 +12,7 @@ from typing import Any, Dict, Optional
 TESTNET_URL = "https://fullnode.devnet.aptoslabs.com"
 FAUCET_URL = "https://faucet.devnet.aptoslabs.com"
 
-#:!:>section_1
+
 class Account:
     """Represents an account as well as the private, public key-pair for the Aptos blockchain."""
 
@@ -38,17 +38,14 @@ class Account:
         """Returns the public key for the associated account"""
 
         return self.signing_key.verify_key.encode().hex()
-#<:!:section_1
 
-#:!:>section_2
+
 class RestClient:
     """A wrapper around the Aptos-core Rest API"""
 
     def __init__(self, url: str) -> None:
         self.url = url
-#<:!:section_2
 
-#:!:>section_3
     def account(self, account_address: str) -> Dict[str, str]:
         """Returns the sequence number and authentication key for an account"""
 
@@ -62,9 +59,7 @@ class RestClient:
             return None
         assert response.status_code == 200, response.text
         return response.json()
-#<:!:section_3
 
-#:!:>section_4
     def generate_transaction(self, sender: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Generates a transaction request that can be submitted to produce a raw transaction that
         can be signed, which upon being signed can be submitted to the blockchain. """
@@ -129,33 +124,8 @@ class RestClient:
             count += 1
         response = requests.get(f"{self.url}/transactions/{txn_hash}")
         assert "success" in response.json(), f"{response.text} - {txn_hash}"
-#<:!:section_4
 
-#:!:>section_5
-    def account_balance(self, account_address: str) -> Optional[int]:
-        """Returns the test coin balance associated with the account"""
-        return self.account_resource(account_address, "0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>")
 
-    def transfer(self, account_from: Account, recipient: str, amount: int) -> str:
-        """Transfer a given coin amount from a given Account to the recipient's account address.
-        Returns the sequence number of the transaction used to transfer."""
-
-        payload = {
-            "type": "script_function_payload",
-            "function": "0x1::coin::transfer",
-            "type_arguments": ["0x1::aptos_coin::AptosCoin"],
-            "arguments": [
-                f"0x{recipient}",
-                str(amount),
-            ]
-        }
-        txn_request = self.generate_transaction(account_from.address(), payload)
-        signed_txn = self.sign_transaction(account_from, txn_request)
-        res = self.submit_transaction(signed_txn)
-        return str(res["hash"])
-#<:!:section_5
-
-#:!:>section_6
 class FaucetClient:
     """Faucet creates and funds accounts. This is a thin wrapper around that."""
 
@@ -170,34 +140,3 @@ class FaucetClient:
         assert txns.status_code == 200, txns.text
         for txn_hash in txns.json():
             self.rest_client.wait_for_transaction(txn_hash)
-#<:!:section_6
-
-
-#:!:>section_7
-if __name__ == "__main__":
-    rest_client = RestClient(TESTNET_URL)
-    faucet_client = FaucetClient(FAUCET_URL, rest_client)
-
-    # Create two accounts, Alice and Bob, and fund Alice but not Bob
-    alice = Account()
-    bob = Account()
-
-    print("\n=== Addresses ===")
-    print(f"Alice: {alice.address()}")
-    print(f"Bob: {bob.address()}")
-
-    faucet_client.fund_account(alice.address(), 1_000_000)
-    faucet_client.fund_account(bob.address(), 0)
-
-    print("\n=== Initial Balances ===")
-    print(f"Alice: {rest_client.account_balance(alice.address())}")
-    print(f"Bob: {rest_client.account_balance(bob.address())}")
-
-    # Have Alice give Bob 10 coins
-    tx_hash = rest_client.transfer(alice, bob.address(), 1_000)
-    rest_client.wait_for_transaction(tx_hash)
-
-    print("\n=== Final Balances ===")
-    print(f"Alice: {rest_client.account_balance(alice.address())}")
-    print(f"Bob: {rest_client.account_balance(bob.address())}")
-#<:!:section_7
