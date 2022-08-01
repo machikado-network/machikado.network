@@ -54,7 +54,7 @@ const Admin = () => {
                 </button>
                 <div className="my-6">
                     <Link href={`https://explorer.devnet.aptos.dev/account/${account?.address}`}>
-                        <a>ここから確認できます</a>
+                        <a className={"px-4 py-2 bg-gray-200 rounded-md"}>ここから確認できます</a>
                     </Link>
                 </div>
             </div>
@@ -71,7 +71,7 @@ const Admin = () => {
                 </button>
                 <div className="my-6">
                     <Link href={`https://explorer.devnet.aptos.dev/account/${account?.address}`}>
-                        <a>ここから確認できます</a>
+                        <a className={"px-4 py-2 bg-gray-200 rounded-md"}>ここから確認できます</a>
                     </Link>
                 </div>
             </div>
