@@ -1,91 +1,195 @@
 module MachikadoNetwork::MachikadoNetwork {
-    use std::string;
-    use aptos_std::table::Table;
+    use std::string::String;
     use std::signer;
-    use aptos_std::table;
     use std::error;
     use std::vector;
+    use aptos_std::table::Table;
+    use aptos_std::table;
+    use aptos_std::event::EventHandle;
+    use aptos_std::event;
+    use std::string;
+    use std::option;
+    use std::option::Option;
 
-    const ETOKEN_STORE_EXISITS: u64 = 0;
-    const ETOKEN_STORE_NOT_FOUND: u64 = 1;
-    const ENAME_EXISTS: u64 = 2;
-    const EPKTOKEN_EXISTS: u64 = 3;
-    const ESUBNET_EXISTS: u64 = 4;
-    const EINVALID_SUBNET_RANGE: u64 = 5;
-    const ENAME_CHARACTOR_INVALID: u64 = 6;
-    const ENO_MESSAGE: u64 = 7;
-    const ENAME_NOT_FOUND: u64 = 8;
-    const ETOKEN_CREATOR_INVALID: u64 = 9;
-    const EPKTOKEN_NOT_FOUND: u64 = 10;
+    const ENO_MESSAGE: u64 = 0;
 
-    // Token for storing Public Key. Used only for reading.
+    const ENETWORK_BINDINGS_ALREADY_EXISTS: u64 = 100;
+    const ESUBNET_ALREADY_EXISTS: u64 = 101;
+    const ECREATOR_ALREADY_EXISTS: u64 = 102;
+    const ENAME_ALREADY_EXISTS: u64 = 103;
+
+    const ENETWORK_BINDINGS_NOT_FOUND: u64 = 200;
+    const ETOKEN_NOT_FOUND: u64 = 201;
+
+    const ESUBNET_RANGE_INVALID: u64 = 300;
+    const EPUBLIC_KEY_INVALID: u64 = 301;
+    const ENAME_CHARACTOR_INVALID: u64 = 302;
+
+    const ETOKEN_PERMISSION_DENIED: u64 = 400;
+
     struct PKToken has store, copy, drop {
-        public_key: string::String,
-        name: string::String,
+        name: String,
         creator: address,
     }
 
-    // How to check for duplicates?
-    // First, check for duplicate names using the bindings table.
-    // Next, we check for duplicate ip addresses using the tokens table.
-    struct PKTokenStore has key {
-        tokens: Table<u8, PKToken>,
-        // Table to link names to subnets. Used to check for duplicates.
-        bindings: Table<string::String, u8>,
-        // List of users who created PKToken
-        creators: vector<address>,
-        subnets: vector<u8>,
-    }
-
-    // Create a PKToken in target's PKTokenStore.
-    public entry fun create_token(
-        creator: &signer,
-        target: address,
-        name_raw: vector<u8>,
+    struct SubnetBinding has store, copy, drop {
         subnet: u8,
-        public_key_raw: vector<u8>,
-    ) acquires PKTokenStore {
-        direct_create_token(creator, target, string::utf8(name_raw), subnet, string::utf8(public_key_raw))
+        creator: address,
     }
 
-    // Edit a PKToken's public key.
-    public entry fun edit_public_key(
-        creator: &signer,
-        target: address,
-        name_raw: vector<u8>,
-        public_key_raw: vector<u8>,
-    ) acquires PKTokenStore {
-        direct_edit_public_key(creator, target, string::utf8(name_raw), string::utf8(public_key_raw));
+    struct NetworkBindings has key {
+        // {[name]: public key}
+        public_keys: Table<String, String>,
+        tokens: vector<PKToken>,
+        subnets: vector<SubnetBinding>,
+        create_subnet_events: EventHandle<SubnetBinding>,
     }
 
-    public entry fun delete_token(
-        creator: &signer,
-        target: address,
-        name_raw: vector<u8>
-    ) acquires PKTokenStore {
-        direct_delete_token(creator, target, string::utf8(name_raw));
-    }
-
-    // Create a PKTokenStore to creator.
-    public entry fun create_token_store(
-        creator: &signer,
-    ) {
+    public entry fun create_bindings(creator: &signer) {
         assert!(
-            !exists<PKTokenStore>(signer::address_of(creator)),
-            error::already_exists(ETOKEN_STORE_EXISITS),
+            !exists<NetworkBindings>(signer::address_of(creator)),
+            error::already_exists(ENETWORK_BINDINGS_ALREADY_EXISTS),
         );
+
         move_to(
             creator,
-            PKTokenStore {
-                tokens: table::new<u8, PKToken>(),
-                bindings: table::new<string::String, u8>(),
-                creators: vector::empty<address>(),
-                subnets: vector::empty<u8>(),
+            NetworkBindings {
+                public_keys: table::new<String, String>(),
+                tokens: vector::empty<PKToken>(),
+                subnets: vector::empty<SubnetBinding>(),
+                create_subnet_events: event::new_event_handle<SubnetBinding>(creator),
             }
         )
     }
 
-    fun check_name_charactors(name: string::String) {
+    public entry fun create_subnet_binding(
+        creator: &signer,
+        target: address,
+        subnet: u8,
+    ) acquires NetworkBindings {
+        let creator_addr = signer::address_of(creator);
+
+        assert!(exists<NetworkBindings>(target), error::not_found(ENETWORK_BINDINGS_NOT_FOUND));
+
+        let bindings = borrow_global_mut<NetworkBindings>(target);
+        let subnets = &mut bindings.subnets;
+
+        assert!(!has_subnet(subnets, subnet), error::already_exists(ESUBNET_ALREADY_EXISTS));
+        assert!(!has_creator(subnets, creator_addr), error::already_exists(ECREATOR_ALREADY_EXISTS));
+
+        // Check subnet
+        assert!(0 < subnet && subnet <= 255, error::invalid_argument(ESUBNET_RANGE_INVALID));
+
+        vector::push_back(
+            subnets,
+            SubnetBinding {
+                subnet,
+                creator: creator_addr,
+            }
+        );
+    }
+
+    public entry fun delete_subnet_binding(
+        creator: &signer,
+        target: address,
+    ) acquires NetworkBindings {
+        let creator_addr = signer::address_of(creator);
+
+        assert!(exists<NetworkBindings>(target), error::not_found(ENETWORK_BINDINGS_NOT_FOUND));
+
+        let bindings = borrow_global_mut<NetworkBindings>(target);
+        let subnets = &mut bindings.subnets;
+
+        let i = 0;
+        let len = vector::length(subnets);
+        // remove one subnet binding(because of create limit)
+        while (i < len) {
+            let subnet = vector::borrow(subnets, i);
+            if (subnet.creator == creator_addr) {
+                vector::remove(subnets, i);
+                return
+            };
+            i = i + 1;
+        }
+    }
+
+    public entry fun create_token(
+        creator: &signer,
+        target: address,
+        name: vector<u8>,
+        public_key: vector<u8>,
+    ) acquires NetworkBindings {
+        direct_create_token(creator, target, string::utf8(name), string::utf8(public_key));
+    }
+
+    public entry fun delete_token(creator: &signer, target: address, name: vector<u8>) acquires NetworkBindings {
+        direct_delete_token(creator, target, string::utf8(name))
+    }
+
+    fun direct_create_token(
+        creator: &signer,
+        target: address,
+        name: String,
+        public_key: String,
+    ) acquires NetworkBindings {
+        let creator_addr = signer::address_of(creator);
+
+        assert!(exists<NetworkBindings>(target), error::not_found(ENETWORK_BINDINGS_NOT_FOUND));
+        let bindings = borrow_global_mut<NetworkBindings>(target);
+        let tokens = &mut bindings.tokens;
+        let public_keys = &mut bindings.public_keys;
+
+        // Check duplicate
+        assert!(!has_name(tokens, name), error::already_exists(ENAME_ALREADY_EXISTS));
+
+        // Validate
+        // Validate public key
+        // NOTE: maybe todo
+        // assert!(ed25519_validate_pubkey(public_key), error::invalid_argument(EPUBLIC_KEY_INVALID));
+
+        // Validate name
+        validate_name_charactors(name);
+
+        // Add data
+        vector::push_back(
+            tokens,
+            PKToken {
+                name,
+                creator: creator_addr,
+            }
+        );
+        table::add(
+            public_keys,
+            name,
+            public_key
+        );
+    }
+
+    fun direct_delete_token(creator: &signer, target: address, name: String) acquires NetworkBindings {
+        let creator_addr = signer::address_of(creator);
+
+        assert!(exists<NetworkBindings>(target), error::not_found(ENETWORK_BINDINGS_NOT_FOUND));
+        let bindings = borrow_global_mut<NetworkBindings>(target);
+        let tokens = &mut bindings.tokens;
+        let public_keys = &mut bindings.public_keys;
+
+        let token_optional = get_token(tokens, name);
+
+        // Check having
+        assert!(option::is_some(&token_optional), error::already_exists(ETOKEN_NOT_FOUND));
+
+        let token = option::borrow(&token_optional);
+
+        assert!(creator_addr == target || token.creator == creator_addr, error::permission_denied(ETOKEN_PERMISSION_DENIED));
+
+        let (ok, nth) = vector::index_of(tokens, token);
+        assert!(ok, ENO_MESSAGE);
+
+        vector::remove(tokens, nth);
+        table::remove(public_keys, name);
+    }
+
+    fun validate_name_charactors(name: String) {
         let i = 0;
         let name_raw = string::bytes(&name);
         while (i < string::length(&name)) {
@@ -99,264 +203,158 @@ module MachikadoNetwork::MachikadoNetwork {
         };
     }
 
-    fun direct_create_token(
-        creator: &signer,
-        target: address,
-        name: string::String,
-        subnet: u8,
-        public_key: string::String,
-    ) acquires PKTokenStore {
-        let creator_addr = signer::address_of(creator);
-
-        // Check target has PKTokenStore
-        assert!(
-            exists<PKTokenStore>(target),
-            error::not_found(ETOKEN_STORE_NOT_FOUND),
-        );
-
-        let token_store = borrow_global_mut<PKTokenStore>(target);
-        let tokens = &mut token_store.tokens;
-        let bindings = &mut token_store.bindings;
-        let creators = &mut token_store.creators;
-        let subnets = &mut token_store.subnets;
-
-        // Check user has PKToken
-        assert!(
-            !vector::contains(creators, &creator_addr),
-            error::already_exists(EPKTOKEN_EXISTS),
-        );
-
-        // Check name duplicate
-        assert!(
-            !table::contains(bindings, name),
-            error::already_exists(ENAME_EXISTS),
-        );
-
-        // Check name charactors
-        check_name_charactors(name);
-
-        // Check subnet duplicate
-        assert!(
-            !table::contains(tokens, subnet),
-            error::already_exists(ESUBNET_EXISTS),
-        );
-
-        // Check subnet range(1<=255 is valid)
-        assert!(
-            subnet != 0,
-            EINVALID_SUBNET_RANGE,
-        );
-
-        // Add to creators
-        vector::push_back(creators, creator_addr);
-        // Add to bindings
-        table::add(bindings, name, subnet);
-        // Add to tokens
-        let token = PKToken {
-            name,
-            public_key,
-            creator: creator_addr,
+    fun has_subnet(subnets: &vector<SubnetBinding>, subnet: u8): bool {
+        let i = 0;
+        while (i < vector::length(subnets)) {
+            let binding = vector::borrow(subnets, i).subnet;
+            if (binding == subnet) {
+                return true
+            };
+            i = i + 1;
         };
-        table::add(tokens, subnet, token);
-        // Add to subnets
-        vector::push_back(subnets, subnet);
+        return false
     }
 
-    fun direct_delete_token(
-        creator: &signer,
-        target: address,
-        name: string::String,
-    ) acquires PKTokenStore {
-        let creator_addr = signer::address_of(creator);
-
-        // Check target has PKTokenStore
-        assert!(
-            exists<PKTokenStore>(target),
-            error::not_found(ETOKEN_STORE_NOT_FOUND),
-        );
-
-        let token_store = borrow_global_mut<PKTokenStore>(target);
-        let tokens = &mut token_store.tokens;
-        let bindings = &mut token_store.bindings;
-        let creators = &mut token_store.creators;
-        let subnets = &mut token_store.subnets;
-
-        if (creator_addr != target) {
-            // Check user has PKToken
-            assert!(
-                vector::contains(creators, &creator_addr),
-                error::already_exists(EPKTOKEN_NOT_FOUND),
-            );
+    fun has_creator(subnets: &vector<SubnetBinding>, addr: address): bool {
+        let i = 0;
+        while (i < vector::length(subnets)) {
+            let binding = vector::borrow(subnets, i).creator;
+            if (binding == addr) {
+                return true
+            };
+            i = i + 1;
         };
-
-        // Check name
-        assert!(
-            table::contains(bindings, name),
-            error::not_found(ENAME_NOT_FOUND),
-        );
-        let binding = *table::borrow(bindings, name);
-
-        let token = *table::borrow(tokens, binding);
-
-        // Check Token Creator
-        assert!(token.creator == creator_addr || creator_addr == target, error::permission_denied(ETOKEN_CREATOR_INVALID));
-
-        // Delete resources
-        table::remove(tokens, binding);
-        table::remove(bindings, name);
-
-        let (ok, nth) = vector::index_of(creators, &token.creator);
-        assert!(ok, ENO_MESSAGE);
-        vector::remove(creators, nth);
-
-        let (ok, nth) = vector::index_of(subnets, &binding);
-        assert!(ok, ENO_MESSAGE);
-        vector::remove(subnets, nth);
+        return false
     }
 
-    fun direct_edit_public_key(
-        creator: &signer,
-        target: address,
-        name: string::String,
-        new_public_key: string::String,
-    ) acquires PKTokenStore {
-        let creator_addr = signer::address_of(creator);
-
-        // Check target has PKTokenStore
-        assert!(
-            exists<PKTokenStore>(target),
-            error::not_found(ETOKEN_STORE_NOT_FOUND),
-        );
-
-        let token_store = borrow_global_mut<PKTokenStore>(target);
-        let tokens = &mut token_store.tokens;
-        let bindings = &mut token_store.bindings;
-
-        // Check name
-        assert!(
-            table::contains(bindings, name),
-            error::not_found(ENAME_NOT_FOUND),
-        );
-        let binding = *table::borrow(bindings, name);
-        let token = table::borrow_mut(tokens, binding);
-
-        // Check Token Creator
-        assert!(token.creator == creator_addr || creator_addr == target, error::permission_denied(ETOKEN_CREATOR_INVALID));
-
-        let public_key = &mut token.public_key;
-        *public_key = new_public_key;
+    fun get_token(tokens: &vector<PKToken>, name: String): Option<PKToken> {
+        let i = 0;
+        while (i < vector::length(tokens)) {
+            let token = vector::borrow(tokens, i);
+            if (token.name == name) {
+                return option::some(*token)
+            };
+            i = i + 1;
+        };
+        option::none<PKToken>()
     }
 
-    #[test(account = @0x1, target = @0x42)]
-    public entry fun create_token_test(account: signer, target: signer) acquires PKTokenStore {
-        create_token_store(&target);
+    fun has_name(tokens: &vector<PKToken>, name: String): bool {
+        let i = 0;
+        while (i < vector::length(tokens)) {
+            if (vector::borrow(tokens, i).name == name) {
+                return true
+            };
+            i = i + 1;
+        };
+        false
+    }
+
+    #[test(account = @0x1)]
+    public entry fun test_create_bindings(account: signer) {
+        create_bindings(&account);
+
+        assert!(exists<NetworkBindings>(signer::address_of(&account)), ENO_MESSAGE);
+    }
+
+    #[test(account = @0x1)]
+    public entry fun test_create_subnet_binding(account: signer) acquires NetworkBindings {
+        let account_addr = signer::address_of(&account);
+        create_bindings(&account);
+
+        create_subnet_binding(
+            &account,
+            account_addr,
+            2
+        );
+
+        let bindings = borrow_global<NetworkBindings>(account_addr);
+
+        assert!(vector::length(&bindings.subnets) == 1, ENO_MESSAGE);
+
+        let subnet = vector::borrow(&bindings.subnets, 0);
+
+        assert!(subnet.creator == account_addr, ENO_MESSAGE);
+        assert!(subnet.subnet == 2, ENO_MESSAGE);
+    }
+
+    #[test(account = @0x1)]
+    public entry fun test_delete_subnet_binding(account: signer) acquires NetworkBindings {
+        let account_addr = signer::address_of(&account);
+        create_bindings(&account);
+
+        create_subnet_binding(
+            &account,
+            account_addr,
+            2
+        );
+
+        delete_subnet_binding(
+            &account,
+            account_addr,
+        );
+
+        let bindings = borrow_global<NetworkBindings>(account_addr);
+
+        assert!(vector::length(&bindings.subnets) == 0, ENO_MESSAGE);
+    }
+
+    #[test(account = @0x1)]
+    public entry fun test_create_token(account: signer) acquires NetworkBindings {
+        let account_addr = signer::address_of(&account);
+        create_bindings(&account);
 
         direct_create_token(
             &account,
-            signer::address_of(&target),
-            string::utf8(b"sumidora"),
-            2,
-            string::utf8(b"A12345_+/1")
-        );
-
-        let token_store = borrow_global<PKTokenStore>(signer::address_of(&target));
-
-        // Check creators
-        let creator = *vector::borrow(&token_store.creators, 0);
-        assert!(signer::address_of(&account) == creator, ENO_MESSAGE);
-
-        // Check bindings
-        let binding = *table::borrow(&token_store.bindings, string::utf8(b"sumidora"));
-        assert!(binding == 2, ENO_MESSAGE);
-
-        // Check tokens
-        let token = table::borrow(&token_store.tokens, 2);
-        assert!(token.creator == signer::address_of(&account), ENO_MESSAGE);
-        assert!(token.public_key == string::utf8(b"A12345_+/1"), ENO_MESSAGE);
-        assert!(token.name == string::utf8(b"sumidora"), ENO_MESSAGE);
-
-        // Check subnets
-        let subnet = *vector::borrow(&token_store.subnets, 0);
-        assert!(subnet == 2, ENO_MESSAGE);
+            account_addr,
+            string::utf8(b"syamimomo"),
+            string::utf8(b"+gyEjlydmJvVJ4z99wHJVxiTNwiL9/zNA9FZb+26D3A"),
+        )
     }
 
     #[test(account = @0x1, target = @0x42)]
-    public entry fun change_public_key_test(account: signer, target: signer) acquires PKTokenStore {
-        create_token_store(&target);
+    public entry fun test_delete_token(account: signer, target: signer) acquires NetworkBindings {
+        let target_addr = signer::address_of(&target);
+        create_bindings(&target);
 
         direct_create_token(
             &account,
-            signer::address_of(&target),
-            string::utf8(b"sumidora"),
-            2,
-            string::utf8(b"A12345_+/1")
-        );
-
-        direct_edit_public_key(
-            &account,
-            signer::address_of(&target),
-            string::utf8(b"sumidora"),
-            string::utf8(b"A12345_+/2")
-        );
-
-        let token_store = borrow_global<PKTokenStore>(signer::address_of(&target));
-
-        // Check Token
-        let token = table::borrow(&token_store.tokens, 2);
-        assert!(token.creator == signer::address_of(&account), ENO_MESSAGE);
-        assert!(token.public_key == string::utf8(b"A12345_+/2"), ENO_MESSAGE);
-        assert!(token.name == string::utf8(b"sumidora"), ENO_MESSAGE);
-    }
-
-    #[test(account = @0x1, target = @0x42)]
-    public entry fun remove_token_test(account: signer, target: signer) acquires PKTokenStore {
-        create_token_store(&target);
-
-        direct_create_token(
-            &account,
-            signer::address_of(&target),
-            string::utf8(b"sumidora"),
-            2,
-            string::utf8(b"A12345_+/1")
+            target_addr,
+            string::utf8(b"syamimomo"),
+            string::utf8(b"+gyEjlydmJvVJ4z99wHJVxiTNwiL9/zNA9FZb+26D3A"),
         );
 
         direct_delete_token(
             &account,
-            signer::address_of(&target),
-            string::utf8(b"sumidora"),
+            target_addr,
+            string::utf8(b"syamimomo"),
         );
 
-        let token_store = borrow_global<PKTokenStore>(signer::address_of(&target));
-
-        assert!(vector::length(&token_store.subnets) == 0, ENO_MESSAGE);
-        assert!(vector::length(&token_store.creators) == 0, ENO_MESSAGE);
-        assert!(table::length(&token_store.bindings) == 0, ENO_MESSAGE);
-        assert!(table::length(&token_store.tokens) == 0, ENO_MESSAGE);
+        let bindings = borrow_global<NetworkBindings>(target_addr);
+        assert!(vector::length(&bindings.tokens) == 0, ENO_MESSAGE);
+        assert!(table::length(&bindings.public_keys) == 0, ENO_MESSAGE);
     }
 
     #[test(account = @0x1, target = @0x42)]
-    public entry fun remove_other_token_test(account: signer, target: signer) acquires PKTokenStore {
-        create_token_store(&target);
+    public entry fun test_delete_aother_token(account: signer, target: signer) acquires NetworkBindings {
+        let target_addr = signer::address_of(&target);
+        create_bindings(&target);
 
         direct_create_token(
             &account,
-            signer::address_of(&target),
-            string::utf8(b"sumidora"),
-            2,
-            string::utf8(b"A12345_+/1")
+            target_addr,
+            string::utf8(b"syamimomo"),
+            string::utf8(b"+gyEjlydmJvVJ4z99wHJVxiTNwiL9/zNA9FZb+26D3A"),
         );
 
         direct_delete_token(
             &target,
-            signer::address_of(&target),
-            string::utf8(b"sumidora"),
+            target_addr,
+            string::utf8(b"syamimomo"),
         );
 
-        let token_store = borrow_global<PKTokenStore>(signer::address_of(&target));
-
-        assert!(vector::length(&token_store.subnets) == 0, ENO_MESSAGE);
-        assert!(vector::length(&token_store.creators) == 0, ENO_MESSAGE);
-        assert!(table::length(&token_store.bindings) == 0, ENO_MESSAGE);
-        assert!(table::length(&token_store.tokens) == 0, ENO_MESSAGE);
+        let bindings = borrow_global<NetworkBindings>(target_addr);
+        assert!(vector::length(&bindings.tokens) == 0, ENO_MESSAGE);
+        assert!(table::length(&bindings.public_keys) == 0, ENO_MESSAGE);
     }
 }

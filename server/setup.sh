@@ -123,7 +123,4 @@ chmod +x /usr/local/etc/tinc/machikado_network/tinc-down
 # 鍵生成
 tinc -n machikado_network generate-ed25519-keys | cat
 
-#systemctl enable tinc@machikado_network.service
-
-
 cat /usr/local/etc/tinc/machikado_network/hosts/"${node_name}"
