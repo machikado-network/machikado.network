@@ -48,6 +48,12 @@ module MachikadoNetwork::MachikadoNetwork {
         create_subnet_events: EventHandle<SubnetBinding>,
     }
 
+    // Setup SubnetStore and PKTokenStore
+    public entry fun setup(creator: &signer) {
+        create_subnet_store(creator);
+        create_pk_token_store(creator);
+    }
+
     public entry fun create_subnet_store(creator: &signer) {
         assert!(
             !exists<SubnetStore>(signer::address_of(creator)),
