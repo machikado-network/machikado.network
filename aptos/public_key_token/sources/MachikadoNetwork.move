@@ -3,8 +3,6 @@ module MachikadoNetwork::MachikadoNetwork {
     use std::signer;
     use std::error;
     use std::vector;
-    use aptos_std::table::Table;
-    use aptos_std::table;
     use aptos_std::event::EventHandle;
     use aptos_std::event;
     use std::string;
@@ -30,6 +28,7 @@ module MachikadoNetwork::MachikadoNetwork {
     struct PKToken has store, copy, drop {
         name: String,
         creator: address,
+        public_key: String,
     }
 
     struct SubnetBinding has store, copy, drop {
@@ -38,8 +37,6 @@ module MachikadoNetwork::MachikadoNetwork {
     }
 
     struct PKTokenStore has key {
-        // {[name]: public key}
-        public_keys: Table<String, String>,
         tokens: vector<PKToken>,
     }
 
@@ -79,7 +76,6 @@ module MachikadoNetwork::MachikadoNetwork {
             creator,
             PKTokenStore {
                 tokens: vector::empty<PKToken>(),
-                public_keys: table::new<String, String>(),
             }
         )
     }
@@ -159,7 +155,6 @@ module MachikadoNetwork::MachikadoNetwork {
         assert!(exists<PKTokenStore>(target), error::not_found(ENETWORK_BINDINGS_NOT_FOUND));
         let bindings = borrow_global_mut<PKTokenStore>(target);
         let tokens = &mut bindings.tokens;
-        let public_keys = &mut bindings.public_keys;
 
         // Check duplicate
         assert!(!has_name(tokens, name), error::already_exists(ENAME_ALREADY_EXISTS));
@@ -178,12 +173,8 @@ module MachikadoNetwork::MachikadoNetwork {
             PKToken {
                 name,
                 creator: creator_addr,
+                public_key,
             }
-        );
-        table::add(
-            public_keys,
-            name,
-            public_key
         );
     }
 
@@ -193,7 +184,6 @@ module MachikadoNetwork::MachikadoNetwork {
         assert!(exists<PKTokenStore>(target), error::not_found(ENETWORK_BINDINGS_NOT_FOUND));
         let bindings = borrow_global_mut<PKTokenStore>(target);
         let tokens = &mut bindings.tokens;
-        let public_keys = &mut bindings.public_keys;
 
         let token_optional = get_token(tokens, name);
 
@@ -208,7 +198,6 @@ module MachikadoNetwork::MachikadoNetwork {
         assert!(ok, ENO_MESSAGE);
 
         vector::remove(tokens, nth);
-        table::remove(public_keys, name);
     }
 
     fun validate_name_charactors(name: String) {
@@ -354,7 +343,6 @@ module MachikadoNetwork::MachikadoNetwork {
 
         let bindings = borrow_global<PKTokenStore>(target_addr);
         assert!(vector::length(&bindings.tokens) == 0, ENO_MESSAGE);
-        assert!(table::length(&bindings.public_keys) == 0, ENO_MESSAGE);
     }
 
     #[test(account = @0x1, target = @0x42)]
@@ -377,6 +365,5 @@ module MachikadoNetwork::MachikadoNetwork {
 
         let bindings = borrow_global<PKTokenStore>(target_addr);
         assert!(vector::length(&bindings.tokens) == 0, ENO_MESSAGE);
-        assert!(table::length(&bindings.public_keys) == 0, ENO_MESSAGE);
     }
 }
