@@ -37,27 +37,43 @@ module MachikadoNetwork::MachikadoNetwork {
         creator: address,
     }
 
-    struct NetworkBindings has key {
+    struct PKTokenStore has key {
         // {[name]: public key}
         public_keys: Table<String, String>,
         tokens: vector<PKToken>,
+    }
+
+    struct SubnetStore has key {
         subnets: vector<SubnetBinding>,
         create_subnet_events: EventHandle<SubnetBinding>,
     }
 
-    public entry fun create_bindings(creator: &signer) {
+    public entry fun create_subnet_store(creator: &signer) {
         assert!(
-            !exists<NetworkBindings>(signer::address_of(creator)),
+            !exists<SubnetStore>(signer::address_of(creator)),
             error::already_exists(ENETWORK_BINDINGS_ALREADY_EXISTS),
         );
 
         move_to(
             creator,
-            NetworkBindings {
-                public_keys: table::new<String, String>(),
-                tokens: vector::empty<PKToken>(),
+            SubnetStore {
                 subnets: vector::empty<SubnetBinding>(),
                 create_subnet_events: event::new_event_handle<SubnetBinding>(creator),
+            }
+        )
+    }
+
+    public entry fun create_pk_token_store(creator: &signer) {
+        assert!(
+            !exists<PKTokenStore>(signer::address_of(creator)),
+            error::already_exists(ENETWORK_BINDINGS_ALREADY_EXISTS),
+        );
+
+        move_to(
+            creator,
+            PKTokenStore {
+                tokens: vector::empty<PKToken>(),
+                public_keys: table::new<String, String>(),
             }
         )
     }
@@ -66,12 +82,12 @@ module MachikadoNetwork::MachikadoNetwork {
         creator: &signer,
         target: address,
         subnet: u8,
-    ) acquires NetworkBindings {
+    ) acquires SubnetStore {
         let creator_addr = signer::address_of(creator);
 
-        assert!(exists<NetworkBindings>(target), error::not_found(ENETWORK_BINDINGS_NOT_FOUND));
+        assert!(exists<SubnetStore>(target), error::not_found(ENETWORK_BINDINGS_NOT_FOUND));
 
-        let bindings = borrow_global_mut<NetworkBindings>(target);
+        let bindings = borrow_global_mut<SubnetStore>(target);
         let subnets = &mut bindings.subnets;
 
         assert!(!has_subnet(subnets, subnet), error::already_exists(ESUBNET_ALREADY_EXISTS));
@@ -92,12 +108,12 @@ module MachikadoNetwork::MachikadoNetwork {
     public entry fun delete_subnet_binding(
         creator: &signer,
         target: address,
-    ) acquires NetworkBindings {
+    ) acquires SubnetStore {
         let creator_addr = signer::address_of(creator);
 
-        assert!(exists<NetworkBindings>(target), error::not_found(ENETWORK_BINDINGS_NOT_FOUND));
+        assert!(exists<SubnetStore>(target), error::not_found(ENETWORK_BINDINGS_NOT_FOUND));
 
-        let bindings = borrow_global_mut<NetworkBindings>(target);
+        let bindings = borrow_global_mut<SubnetStore>(target);
         let subnets = &mut bindings.subnets;
 
         let i = 0;
@@ -118,11 +134,11 @@ module MachikadoNetwork::MachikadoNetwork {
         target: address,
         name: vector<u8>,
         public_key: vector<u8>,
-    ) acquires NetworkBindings {
+    ) acquires PKTokenStore {
         direct_create_token(creator, target, string::utf8(name), string::utf8(public_key));
     }
 
-    public entry fun delete_token(creator: &signer, target: address, name: vector<u8>) acquires NetworkBindings {
+    public entry fun delete_token(creator: &signer, target: address, name: vector<u8>) acquires PKTokenStore {
         direct_delete_token(creator, target, string::utf8(name))
     }
 
@@ -131,11 +147,11 @@ module MachikadoNetwork::MachikadoNetwork {
         target: address,
         name: String,
         public_key: String,
-    ) acquires NetworkBindings {
+    ) acquires PKTokenStore {
         let creator_addr = signer::address_of(creator);
 
-        assert!(exists<NetworkBindings>(target), error::not_found(ENETWORK_BINDINGS_NOT_FOUND));
-        let bindings = borrow_global_mut<NetworkBindings>(target);
+        assert!(exists<PKTokenStore>(target), error::not_found(ENETWORK_BINDINGS_NOT_FOUND));
+        let bindings = borrow_global_mut<PKTokenStore>(target);
         let tokens = &mut bindings.tokens;
         let public_keys = &mut bindings.public_keys;
 
@@ -165,11 +181,11 @@ module MachikadoNetwork::MachikadoNetwork {
         );
     }
 
-    fun direct_delete_token(creator: &signer, target: address, name: String) acquires NetworkBindings {
+    fun direct_delete_token(creator: &signer, target: address, name: String) acquires PKTokenStore {
         let creator_addr = signer::address_of(creator);
 
-        assert!(exists<NetworkBindings>(target), error::not_found(ENETWORK_BINDINGS_NOT_FOUND));
-        let bindings = borrow_global_mut<NetworkBindings>(target);
+        assert!(exists<PKTokenStore>(target), error::not_found(ENETWORK_BINDINGS_NOT_FOUND));
+        let bindings = borrow_global_mut<PKTokenStore>(target);
         let tokens = &mut bindings.tokens;
         let public_keys = &mut bindings.public_keys;
 
@@ -252,15 +268,15 @@ module MachikadoNetwork::MachikadoNetwork {
 
     #[test(account = @0x1)]
     public entry fun test_create_bindings(account: signer) {
-        create_bindings(&account);
+        create_subnet_store(&account);
 
-        assert!(exists<NetworkBindings>(signer::address_of(&account)), ENO_MESSAGE);
+        assert!(exists<SubnetStore>(signer::address_of(&account)), ENO_MESSAGE);
     }
 
     #[test(account = @0x1)]
-    public entry fun test_create_subnet_binding(account: signer) acquires NetworkBindings {
+    public entry fun test_create_subnet_binding(account: signer) acquires SubnetStore {
         let account_addr = signer::address_of(&account);
-        create_bindings(&account);
+        create_subnet_store(&account);
 
         create_subnet_binding(
             &account,
@@ -268,7 +284,7 @@ module MachikadoNetwork::MachikadoNetwork {
             2
         );
 
-        let bindings = borrow_global<NetworkBindings>(account_addr);
+        let bindings = borrow_global<SubnetStore>(account_addr);
 
         assert!(vector::length(&bindings.subnets) == 1, ENO_MESSAGE);
 
@@ -279,9 +295,9 @@ module MachikadoNetwork::MachikadoNetwork {
     }
 
     #[test(account = @0x1)]
-    public entry fun test_delete_subnet_binding(account: signer) acquires NetworkBindings {
+    public entry fun test_delete_subnet_binding(account: signer) acquires SubnetStore {
         let account_addr = signer::address_of(&account);
-        create_bindings(&account);
+        create_subnet_store(&account);
 
         create_subnet_binding(
             &account,
@@ -294,15 +310,15 @@ module MachikadoNetwork::MachikadoNetwork {
             account_addr,
         );
 
-        let bindings = borrow_global<NetworkBindings>(account_addr);
+        let bindings = borrow_global<SubnetStore>(account_addr);
 
         assert!(vector::length(&bindings.subnets) == 0, ENO_MESSAGE);
     }
 
     #[test(account = @0x1)]
-    public entry fun test_create_token(account: signer) acquires NetworkBindings {
+    public entry fun test_create_token(account: signer) acquires PKTokenStore {
         let account_addr = signer::address_of(&account);
-        create_bindings(&account);
+        create_pk_token_store(&account);
 
         direct_create_token(
             &account,
@@ -313,9 +329,9 @@ module MachikadoNetwork::MachikadoNetwork {
     }
 
     #[test(account = @0x1, target = @0x42)]
-    public entry fun test_delete_token(account: signer, target: signer) acquires NetworkBindings {
+    public entry fun test_delete_token(account: signer, target: signer) acquires PKTokenStore {
         let target_addr = signer::address_of(&target);
-        create_bindings(&target);
+        create_pk_token_store(&target);
 
         direct_create_token(
             &account,
@@ -330,15 +346,15 @@ module MachikadoNetwork::MachikadoNetwork {
             string::utf8(b"syamimomo"),
         );
 
-        let bindings = borrow_global<NetworkBindings>(target_addr);
+        let bindings = borrow_global<PKTokenStore>(target_addr);
         assert!(vector::length(&bindings.tokens) == 0, ENO_MESSAGE);
         assert!(table::length(&bindings.public_keys) == 0, ENO_MESSAGE);
     }
 
     #[test(account = @0x1, target = @0x42)]
-    public entry fun test_delete_aother_token(account: signer, target: signer) acquires NetworkBindings {
+    public entry fun test_delete_aother_token(account: signer, target: signer) acquires PKTokenStore {
         let target_addr = signer::address_of(&target);
-        create_bindings(&target);
+        create_pk_token_store(&target);
 
         direct_create_token(
             &account,
@@ -353,7 +369,7 @@ module MachikadoNetwork::MachikadoNetwork {
             string::utf8(b"syamimomo"),
         );
 
-        let bindings = borrow_global<NetworkBindings>(target_addr);
+        let bindings = borrow_global<PKTokenStore>(target_addr);
         assert!(vector::length(&bindings.tokens) == 0, ENO_MESSAGE);
         assert!(table::length(&bindings.public_keys) == 0, ENO_MESSAGE);
     }

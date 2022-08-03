@@ -1,0 +1,15 @@
+name: Release sakura CLI
+on:
+  push:
+    branches-ignore:
+      - '**'
+
+    tags:
+      - 'sakura-cli-v*'
+jobs:
+  release-sakura-cli:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [armv7-unknown-linux-gnueabihf, x86_64-unknown-linux-gnu, x86_64-apple-darwin, aarch64-apple-darwin]
+
