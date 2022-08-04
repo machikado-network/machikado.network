@@ -26,6 +26,7 @@ module MachikadoNetwork::MachikadoAccount {
     const EINVALID_ACCOUNT_NAME_LENGTH: u64 = 301;
     const EINVALID_NODE_NAME_LENGTH: u64 = 302;
     const EINVALID_PORT_RANGE: u64 = 303;
+    const EINVALID_USER: u64 = 303;
 
     struct TincNode has store, copy, drop {
         // tinc host name e.g. syamimomo
@@ -66,6 +67,11 @@ module MachikadoNetwork::MachikadoAccount {
     struct FindResult<T> has store, copy, drop {
         data: T,
         nth: u64,
+    }
+
+    struct WithAddress<T> has store, copy, drop {
+        data: T,
+        addr: address,
     }
 
     public fun direct_create_account_store(creator: &signer) {
@@ -237,6 +243,34 @@ module MachikadoNetwork::MachikadoAccount {
         node.inet_port = some(inet_port);
     }
 
+    public fun direct_delete_node(
+        creator: &signer,
+        target: address,
+        name: String,
+    ) acquires AccountStore {
+        let creator_addr = signer::address_of(creator);
+        let is_admin = creator_addr == target;
+
+        assert!(exists<AccountStore>(target), error::not_found(EACCOUNT_STORE_NOT_FOUND));
+
+        let store = borrow_global_mut<AccountStore>(target);
+        let accounts = &mut store.accounts;
+        let addresses = &mut store.addresses;
+
+        let result_optional = find_all_node_by_name(accounts, addresses, name);
+        assert!(option::is_some(&result_optional), error::not_found(ENODE_NOT_FOUND));
+        let result = option::borrow(&result_optional);
+
+        // Check permission
+        assert!(is_admin || result.addr == creator_addr, error::permission_denied(EINVALID_USER));
+
+        let account = table::borrow_mut(accounts, AccountKey {owner: result.addr});
+        let nodes = &mut account.nodes;
+
+        // Delete node
+        vector::remove(nodes, result.data.nth);
+    }
+
     fun find_account_key_by_name(accounts: &Table<AccountKey, Account>, addresses: &vector<address>, name: String): Option<AccountKey> {
         let i = 0u64;
         while (i < vector::length(addresses)) {
@@ -265,18 +299,22 @@ module MachikadoNetwork::MachikadoAccount {
         none<FindResult<TincNode>>()
     }
 
-    fun find_all_node_by_name(accounts: &Table<AccountKey, Account>, addresses: &vector<address>, name: String): Option<FindResult<TincNode>> {
+    fun find_all_node_by_name(accounts: &Table<AccountKey, Account>, addresses: &vector<address>, name: String): Option<WithAddress<FindResult<TincNode>>> {
         let i = 0;
         while (i < vector::length(addresses)) {
             let addr = vector::borrow(addresses, i);
             let account = table::borrow(accounts, AccountKey {owner: *addr});
-            let node = find_node_by_name(&account.nodes, name);
-            if (option::is_some(&node)) {
-                return node
+            let node_optional = find_node_by_name(&account.nodes, name);
+            if (option::is_some(&node_optional)) {
+                let node = option::borrow(&node_optional);
+                return some(WithAddress<FindResult<TincNode>> {
+                    data: *node,
+                    addr: *addr,
+                })
             };
             i = i + 1;
         };
-        none<FindResult<TincNode>>()
+        none<WithAddress<FindResult<TincNode>>>()
     }
 
     fun is_valide_name_charactors(name: String): bool {
@@ -448,5 +486,73 @@ module MachikadoNetwork::MachikadoAccount {
         let token = vector::borrow(&acc.nodes, 0);
         assert!(token.inet_hostname == some(utf8(b"host.example.com")), ENO_MESSAGE);
         assert!(token.inet_port == some(655), ENO_MESSAGE);
+    }
+
+    #[test(account = @0x42, target = @0x1)]
+    public entry fun test_delete_node(account: signer, target: signer) acquires AccountStore {
+        direct_create_account_store(&target);
+
+        direct_create_account(
+            &account,
+            signer::address_of(&target),
+            utf8(b"syamimomo")
+        );
+
+        direct_create_node(
+            &account,
+            addr(&target),
+            utf8(b"ogura"),
+            utf8(b"12345ABC"),
+        );
+
+        direct_delete_node(
+            &account,
+            addr(&target),
+            utf8(b"ogura"),
+        );
+
+        let store = borrow_global<AccountStore>(signer::address_of(&target));
+        let accounts = &store.accounts;
+        let acc = table::borrow(accounts, AccountKey {owner: signer::address_of(&account)});
+
+        assert!(acc.name == utf8(b"syamimomo"), ENO_MESSAGE);
+
+        // Check nodes' length is 0
+        assert!(vector::length(&acc.nodes) == 0, ENO_MESSAGE);
+    }
+
+    #[test(account = @0x42, target = @0x1)]
+    public entry fun test_delete_node_by_admin(account: signer, target: signer) acquires AccountStore {
+        // Delete another user's node by the account store owner
+        direct_create_account_store(&target);
+
+        direct_create_account(
+            &account,
+            signer::address_of(&target),
+            utf8(b"syamimomo")
+        );
+
+        direct_create_node(
+            &account,
+            addr(&target),
+            utf8(b"ogura"),
+            utf8(b"12345ABC"),
+        );
+
+        // Delete by admin
+        direct_delete_node(
+            &target,
+            addr(&target),
+            utf8(b"ogura"),
+        );
+
+        let store = borrow_global<AccountStore>(signer::address_of(&target));
+        let accounts = &store.accounts;
+        let acc = table::borrow(accounts, AccountKey {owner: signer::address_of(&account)});
+
+        assert!(acc.name == utf8(b"syamimomo"), ENO_MESSAGE);
+
+        // Check nodes' length is 0
+        assert!(vector::length(&acc.nodes) == 0, ENO_MESSAGE);
     }
 }

@@ -1,5 +1,5 @@
 module MachikadoNetwork::MachikadoNetwork {
-    use MachikadoNetwork::MachikadoAccount::{direct_create_account, direct_update_account_name, direct_create_account_store, direct_create_node, direct_update_node_public_key, direct_update_node_inet_host};
+    use MachikadoNetwork::MachikadoAccount::{direct_create_account, direct_update_account_name, direct_create_account_store, direct_create_node, direct_update_node_public_key, direct_update_node_inet_host, direct_delete_node};
     use std::string;
 
     public entry fun create_account_store(creator: &signer) {
@@ -48,5 +48,13 @@ module MachikadoNetwork::MachikadoNetwork {
         inet_port: u64,
     ) {
         direct_update_node_inet_host(creator, target, string::utf8(name), string::utf8(inet_hostname), inet_port);
+    }
+
+    public entry fun delete_node(
+        creator: &signer,
+        target: address,
+        name: vector<u8>,
+    ) {
+        direct_delete_node(creator, target, string::utf8(name));
     }
 }
