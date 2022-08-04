@@ -17,6 +17,7 @@ module MachikadoNetwork::MachikadoAccount {
     const EACCOUNT_ALREADY_EXISTS: u64 = 101;
     const ENAME_ALREADY_EXISTS: u64 = 102;
     const ENODE_NAME_ALREADY_EXISTS: u64 = 103;
+    const ESUBNET_ID_ALREADY_EXISTS: u64 = 104;
 
     const EACCOUNT_STORE_NOT_FOUND: u64 = 200;
     const EACCOUNT_NOT_FOUND: u64 = 201;
@@ -27,6 +28,7 @@ module MachikadoNetwork::MachikadoAccount {
     const EINVALID_NODE_NAME_LENGTH: u64 = 302;
     const EINVALID_PORT_RANGE: u64 = 303;
     const EINVALID_USER: u64 = 303;
+    const EINVALID_SUBNET_RANGE: u64 = 304;
 
     struct TincNode has store, copy, drop {
         // tinc host name e.g. syamimomo
@@ -271,6 +273,34 @@ module MachikadoNetwork::MachikadoAccount {
         vector::remove(nodes, result.data.nth);
     }
 
+    public fun direct_create_subnet(
+        creator: &signer,
+        target: address,
+        id: u8,
+    ) acquires AccountStore {
+        let creator_addr = signer::address_of(creator);
+
+        // Validate Argument
+        // subnet is 0 < id <= 255
+        assert!(0 < id, error::invalid_argument(EINVALID_SUBNET_RANGE));
+
+        assert!(exists<AccountStore>(target), error::not_found(EACCOUNT_STORE_NOT_FOUND));
+
+        let store = borrow_global_mut<AccountStore>(target);
+        let accounts = &mut store.accounts;
+        let addresses = &mut store.addresses;
+
+        // Check subnet is not used
+        assert!(option::is_none(&find_all_subnet(accounts, addresses, Subnet {id})), error::already_exists(ESUBNET_ID_ALREADY_EXISTS));
+
+        // Check user has account
+        assert!(table::contains(accounts, AccountKey {owner: creator_addr}), error::not_found(EACCOUNT_NOT_FOUND));
+
+        let account = table::borrow_mut(accounts, AccountKey {owner: creator_addr});
+        let subnets = &mut account.subnets;
+        vector::push_back(subnets, Subnet {id});
+    }
+
     fun find_account_key_by_name(accounts: &Table<AccountKey, Account>, addresses: &vector<address>, name: String): Option<AccountKey> {
         let i = 0u64;
         while (i < vector::length(addresses)) {
@@ -315,6 +345,24 @@ module MachikadoNetwork::MachikadoAccount {
             i = i + 1;
         };
         none<WithAddress<FindResult<TincNode>>>()
+    }
+
+    fun find_all_subnet(accounts: &Table<AccountKey, Account>, addresses: &vector<address>, subnet: Subnet): Option<WithAddress<Subnet>> {
+        let i = 0;
+        while (i < vector::length(addresses)) {
+            let addr = vector::borrow(addresses, i);
+            let account = table::borrow(accounts, AccountKey {owner: *addr});
+            if (vector::contains(&account.subnets, &subnet)) {
+                return some(
+                    WithAddress<Subnet> {
+                        data: subnet,
+                        addr: *addr,
+                    }
+                )
+            };
+            i = i + 1;
+        };
+        none<WithAddress<Subnet>>()
     }
 
     fun is_valide_name_charactors(name: String): bool {
@@ -554,5 +602,31 @@ module MachikadoNetwork::MachikadoAccount {
 
         // Check nodes' length is 0
         assert!(vector::length(&acc.nodes) == 0, ENO_MESSAGE);
+    }
+
+    #[test(account = @0x42, target = @0x1)]
+    public entry fun test_create_subnet(account: signer, target: signer) acquires AccountStore {
+        direct_create_account_store(&target);
+
+        direct_create_account(
+            &account,
+            addr(&target),
+            utf8(b"syamimomo")
+        );
+
+        direct_create_subnet(
+            &account,
+            addr(&target),
+            12,
+        );
+
+        let store = borrow_global<AccountStore>(signer::address_of(&target));
+        let accounts = &store.accounts;
+        let acc = table::borrow(accounts, AccountKey {owner: signer::address_of(&account)});
+
+        assert!(vector::length(&acc.subnets) == 1, ENO_MESSAGE);
+
+        let subnet = vector::borrow(&acc.subnets, 0);
+        assert!(subnet.id == 12, ENO_MESSAGE);
     }
 }

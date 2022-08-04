@@ -1,5 +1,5 @@
 module MachikadoNetwork::MachikadoNetwork {
-    use MachikadoNetwork::MachikadoAccount::{direct_create_account, direct_update_account_name, direct_create_account_store, direct_create_node, direct_update_node_public_key, direct_update_node_inet_host, direct_delete_node};
+    use MachikadoNetwork::MachikadoAccount::{direct_create_account, direct_update_account_name, direct_create_account_store, direct_create_node, direct_update_node_public_key, direct_update_node_inet_host, direct_delete_node, direct_create_subnet};
     use std::string;
 
     public entry fun create_account_store(creator: &signer) {
@@ -56,5 +56,13 @@ module MachikadoNetwork::MachikadoNetwork {
         name: vector<u8>,
     ) {
         direct_delete_node(creator, target, string::utf8(name));
+    }
+
+    public entry fun create_subnet(
+        creator: &signer,
+        target: address,
+        id: u8,
+    ) {
+        direct_create_subnet(creator, target, id);
     }
 }
