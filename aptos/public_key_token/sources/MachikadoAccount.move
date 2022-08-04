@@ -22,6 +22,7 @@ module MachikadoNetwork::MachikadoAccount {
     const EACCOUNT_STORE_NOT_FOUND: u64 = 200;
     const EACCOUNT_NOT_FOUND: u64 = 201;
     const ENODE_NOT_FOUND: u64 = 202;
+    const ESUBNET_NOT_FOUND: u64 = 203;
 
     const EINVALID_NAME_CHARACTOR: u64 = 300;
     const EINVALID_ACCOUNT_NAME_LENGTH: u64 = 301;
@@ -299,6 +300,36 @@ module MachikadoNetwork::MachikadoAccount {
         let account = table::borrow_mut(accounts, AccountKey {owner: creator_addr});
         let subnets = &mut account.subnets;
         vector::push_back(subnets, Subnet {id});
+    }
+
+    public fun direct_delete_subnet(
+        creator: &signer,
+        target: address,
+        id: u8,
+    ) acquires AccountStore {
+        let creator_addr = signer::address_of(creator);
+        let is_admin = creator_addr == target;
+
+        assert!(exists<AccountStore>(target), error::not_found(EACCOUNT_STORE_NOT_FOUND));
+
+        let store = borrow_global_mut<AccountStore>(target);
+        let accounts = &mut store.accounts;
+        let addresses = &mut store.addresses;
+
+        let result_optional = find_all_subnet(accounts, addresses, Subnet {id});
+        assert!(option::is_some(&result_optional), error::not_found(ESUBNET_NOT_FOUND));
+        let result = option::borrow(&result_optional);
+
+        // Check permission
+        assert!(is_admin || result.addr == creator_addr, error::permission_denied(EINVALID_USER));
+
+        let account = table::borrow_mut(accounts, AccountKey {owner: result.addr});
+        let subnets = &mut account.subnets;
+
+        // Remove subnet
+        let (ok, nth) = vector::index_of(subnets, &Subnet {id});
+        assert!(ok, ENO_MESSAGE);
+        vector::remove(subnets, nth);
     }
 
     fun find_account_key_by_name(accounts: &Table<AccountKey, Account>, addresses: &vector<address>, name: String): Option<AccountKey> {
@@ -628,5 +659,65 @@ module MachikadoNetwork::MachikadoAccount {
 
         let subnet = vector::borrow(&acc.subnets, 0);
         assert!(subnet.id == 12, ENO_MESSAGE);
+    }
+
+    #[test(account = @0x42, target = @0x1)]
+    public entry fun test_delete_subnet(account: signer, target: signer) acquires AccountStore {
+        direct_create_account_store(&target);
+
+        direct_create_account(
+            &account,
+            addr(&target),
+            utf8(b"syamimomo")
+        );
+
+        direct_create_subnet(
+            &account,
+            addr(&target),
+            12,
+        );
+
+        direct_delete_subnet(
+            &account,
+            addr(&target),
+            12,
+        );
+
+        let store = borrow_global<AccountStore>(signer::address_of(&target));
+        let accounts = &store.accounts;
+        let acc = table::borrow(accounts, AccountKey {owner: signer::address_of(&account)});
+
+        assert!(vector::length(&acc.subnets) == 0, ENO_MESSAGE);
+    }
+
+    #[test(account = @0x42, target = @0x1)]
+    public entry fun test_delete_subnet_root(account: signer, target: signer) acquires AccountStore {
+        // Delete another user's subnet by the account store owner
+        direct_create_account_store(&target);
+
+        direct_create_account(
+            &account,
+            addr(&target),
+            utf8(b"syamimomo")
+        );
+
+        direct_create_subnet(
+            &account,
+            addr(&target),
+            12,
+        );
+
+        // Delete by admin
+        direct_delete_subnet(
+            &target,
+            addr(&target),
+            12,
+        );
+
+        let store = borrow_global<AccountStore>(signer::address_of(&target));
+        let accounts = &store.accounts;
+        let acc = table::borrow(accounts, AccountKey {owner: signer::address_of(&account)});
+
+        assert!(vector::length(&acc.subnets) == 0, ENO_MESSAGE);
     }
 }
