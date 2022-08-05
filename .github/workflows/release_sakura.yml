@@ -104,14 +104,11 @@ jobs:
       - name: Show Files
         run: ls -R
 
-      - name: Zip Artifact
-        run: zip ${{ steps.tag.outputs.name }}-${{ matrix.target }}.zip ${{ steps.tag.outputs.name }}-${{ matrix.target }}/sakura
-
       - uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.draft-release-sakura-cli.outputs.upload_url }}
-          asset_path: ./${{ steps.tag.outputs.name }}-${{ matrix.target }}.zip
-          asset_name: ${{ steps.tag.outputs.name }}-${{ matrix.target }}.zip
-          asset_content_type: application/zip
+          asset_path: ./${{ steps.tag.outputs.name }}-${{ matrix.target }}/sakura
+          asset_name: ${{ steps.tag.outputs.name }}-${{ matrix.target }}
+          asset_content_type: application/octet-stream
