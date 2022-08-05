@@ -11,7 +11,7 @@ on:
 jobs:
   build_cache:
     runs-on: ubuntu-latest
-    if: github.event.label.name == 'sakura'
+    if: github.event_name == 'push' || github.event.label.name == 'sakura'
 
     steps:
       - uses: actions/checkout@v3
