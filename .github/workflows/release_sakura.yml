@@ -45,7 +45,9 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             sakura/target/
-          key: sakura-cli-${{ runner.os }}-cargo-${{ matrix.target }}
+          key: sakura-cli-${{ runner.os }}-cargo-${{ matrix.target }}-${{ hashFiles('sakura/Cargo.lock') }}
+          restore-keys: |
+            sakura-cli-${{ runner.os }}-cargo-${{ matrix.target }}-
 
       - uses: actions-rs/cargo@v1
         with:
