@@ -4,8 +4,8 @@
 # まちかどネットワークtincノードセットアップスクリプト
 #
 # 使い方
-#   chmod +x setup.sh
-#   sudo ./setup.sh <tincノード名> <まちかどネットワーク側IPアドレス>
+#   chmod +x setup_gateway.sh
+#   sudo ./setup_gateway.sh.sh <tincノード名> <まちかどネットワーク側IPアドレス>
 #
 # forked from https://gist.github.com/miminashi/f83a967f8c1a74dcb927aeb90947d766
 #
@@ -51,22 +51,29 @@ sed 's/{NODE_NAME}/'"${node_name}"'/' > /etc/tinc/machikado_network/hosts/"${nod
 # {NODE_NAME}
 EOF
 
-# 初期ルートノードの設定
-#  - syami momo
-cat > /etc/tinc/machikado_network/hosts/syamimomo <<'EOF'
-# syamimomo
-Address = 52.194.124.212
-Port = 655
-Ed25519PublicKey = gK0Altm/AO+Zgj7EeFQ2Fi+bMQAKKwnY61r+wQk3AHG
-EOF
+## 初期ルートノードの設定
+##  - syami momo
+#cat > /etc/tinc/machikado_network/hosts/syamimomo <<'EOF'
+## syamimomo
+#Address = 52.194.124.212
+#Port = 655
+#Ed25519PublicKey = gK0Altm/AO+Zgj7EeFQ2Fi+bMQAKKwnY61r+wQk3AHG
+#EOF
 
+## tinc.conf の作成
+#sed -e 's/{NODE_NAME}/'"${node_name}"'/' > /etc/tinc/machikado_network/tinc.conf <<'EOF'
+#Name = {NODE_NAME}
+#Mode = switch
+#Device = /dev/net/tun
+#ConnectTo = syamimomo
+#EOF
 # tinc.conf の作成
 sed -e 's/{NODE_NAME}/'"${node_name}"'/' > /etc/tinc/machikado_network/tinc.conf <<'EOF'
 Name = {NODE_NAME}
 Mode = switch
 Device = /dev/net/tun
-ConnectTo = syamimomo
 EOF
+
 
 # tinc-up スクリプトの作成
 # このシェルスクリプトはVPNセッションの開始時に実行される
@@ -76,7 +83,7 @@ ip link add br0 type bridge
 ip link set br0 up
 ip link set $INTERFACE up
 ip link set dev $INTERFACE master br0
-ip link set dev eth1 master br0
+#ip link set dev eth1 master br0
 ip addr add {IP_ADDRESS}/8 dev br0
 echo 1 > /proc/sys/net/ipv4/ip_forward
 iptables-restore < /etc/tinc/machikado_network/nat.iptables
@@ -128,7 +135,7 @@ cat > /etc/tinc/machikado_network/tinc-down <<'EOF'
 #!/bin/sh
 ip link set dev $INTERFACE nomaster
 ip link set dev $INTERFACE down
-ip link set dev eth1 nomaster
+#ip link set dev eth1 nomaster
 ip link set dev br0 down
 ip link del dev br0
 EOF
@@ -143,6 +150,7 @@ sed -i -e '/^# EXTRA="-d"$/ s/# //' /etc/default/tinc
 
 # tincサービスの有効化
 systemctl enable tinc@machikado_network.service
+systemctl start tinc@machikado_network.service
 
 ## 完了メッセージを表示する
 #cat /etc/tinc/machikado_network/hosts/"${node_name}"
