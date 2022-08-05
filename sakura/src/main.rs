@@ -1,7 +1,7 @@
 mod setup;
 
-use clap::{Parser, Subcommand};
 use crate::setup::{run_setup_command, SetupCommand};
+use clap::{Parser, Subcommand};
 
 #[derive(Subcommand, Debug)]
 enum SubCommand {
@@ -22,7 +22,7 @@ struct Args {
 fn main() {
     let args = Args::parse();
     match args.subcommand {
-        SubCommand::Setup {subcommand} => {
+        SubCommand::Setup { subcommand } => {
             run_setup_command(subcommand);
         }
     }
