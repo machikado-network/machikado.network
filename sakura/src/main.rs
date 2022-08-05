@@ -1,7 +1,7 @@
 mod tinc;
 
 use crate::tinc::{run_tinc_command, TincCommand};
-use clap::{ArgMatches, Command, Error, Parser, Subcommand};
+use clap::{Parser, Subcommand};
 
 #[derive(Subcommand, Debug)]
 enum SubCommand {

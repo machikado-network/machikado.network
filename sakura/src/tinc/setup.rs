@@ -1,16 +1,17 @@
 use colored::*;
 use std::net::Ipv4Addr;
+use std::process::{exit, Command};
 use std::str::FromStr;
 
 pub fn validate_name(s: &str) -> Result<String, String> {
     if s.len() > 32 {
         return Err("Names must be 32 characters or less.".to_string());
     }
-    if s.len() == 0 {
+    if s.is_empty() {
         return Err("Names must be 1 characters or more".to_string());
     }
     for char in s.chars() {
-        if char.is_digit(10) {
+        if char.is_ascii_digit() {
             continue;
         }
         match char {
@@ -36,10 +37,84 @@ pub fn validate_ip_addr(s: &str) -> Result<Ipv4Addr, String> {
     }
 }
 
-pub fn setup_tinc(name: String, ip_addr: Ipv4Addr) {}
+pub fn setup_tinc(_name: String, _ip_addr: Ipv4Addr) {
+    println!(
+        "    {}",
+        "Starting setup tinc node for Machikado Network"
+            .bright_green()
+            .bold()
+    );
+    println!();
+    let result = check_is_tinc_installed();
+    if !result {
+        println!();
+        install_tinc();
+    }
+    println!();
+}
 
-pub fn install_tinc() {
-    println!("{}", "Install tinc 1.0".bright_green())
+fn check_is_tinc_installed() -> bool {
+    println!("    {} tinc is installed", "Checking".bright_green().bold());
+    let output = Command::new("which")
+        .args(&["tincd"])
+        .output()
+        .expect("Failed to run `which tincd`");
+    let installed = output.status.success();
+    println!();
+    if installed {
+        println!(
+            "    {} {}",
+            "Found tincd at:".bright_green().bold(),
+            String::from_utf8_lossy(&*output.stdout)
+        )
+    } else {
+        println!("    {}", "Tinc is not found".bright_red().bold(),)
+    }
+    installed
+}
+
+fn install_tinc() {
+    #[cfg(target_os = "linux")]
+    let method = "apt";
+    #[cfg(target_os = "macos")]
+    let method = "homebrew";
+    println!(
+        "    {} tinc by {}",
+        "Installing".bright_green().bold(),
+        method
+    );
+    run_install_tinc();
+    println!("    {} tinc", "Installed".bright_green().bold());
+}
+
+fn run_install_tinc() {
+    #[cfg(target_os = "macos")]
+    let r = Command::new("brew")
+        .args(&["install", "tinc"])
+        .spawn()
+        .expect(&*format!(
+            "{} {}",
+            "Failed".bright_red().bold(),
+            "to run `brew install tinc`"
+        ));
+    #[cfg(target_os = "linux")]
+    let r = Command::new("apt-get")
+        .args(&["install", "tinc"])
+        .spawn()
+        .expect(&*format!(
+            "{} {}",
+            "Failed".bright_red().bold(),
+            "to run `brew install tinc`"
+        ));
+
+    let output = r.wait_with_output();
+    if output.is_err() || !output.unwrap().status.success() {
+        println!(
+            "    {} when installing tinc. abort.",
+            "Error".bright_red().bold(),
+        );
+        exit(1);
+    }
 }
 
 #[cfg(test)]
