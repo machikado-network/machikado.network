@@ -11,3 +11,9 @@ colored = "2"
 [dependencies.clap]
 version = "3.2.16"
 features = ["derive"]
+
+[profile.release]
+strip = true
+opt-level = "s"
+lto = true
+codegen-units = 1
