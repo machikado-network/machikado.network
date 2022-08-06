@@ -15,64 +15,14 @@ Vagrant.configure("2") do |config|
   # The most common configuration options are documented and commented below.
   # For a complete reference, please see the online documentation at
   # https://docs.vagrantup.com.
+  config.vm.provider "virtualbox" do |vb|
+    vb.customize ['modifyvm', :id, '--natnet1', '172.16.30.0/24']
+  end
 
   # Every Vagrant development environment requires a box. You can search for
   # boxes at https://vagrantcloud.com/search.
   config.vm.box = "generic/debian11"
-
-  # Disable automatic box update checking. If you disable this, then
-  # boxes will only be checked for updates when the user runs
-  # `vagrant box outdated`. This is not recommended.
-  # config.vm.box_check_update = false
-
-  # Create a forwarded port mapping which allows access to a specific port
-  # within the machine from a port on the host machine. In the example below,
-  # accessing "localhost:8080" will access port 80 on the guest machine.
-  # NOTE: This will enable public access to the opened port
-  # config.vm.network "forwarded_port", guest: 80, host: 8080
-
-  # Create a forwarded port mapping which allows access to a specific port
-  # within the machine from a port on the host machine and only allow access
-  # via 127.0.0.1 to disable public access
-  # config.vm.network "forwarded_port", guest: 80, host: 8080, host_ip: "127.0.0.1"
-
-  # Create a private network, which allows host-only access to the machine
-  # using a specific IP.
-  # config.vm.network "private_network", ip: "192.168.33.10"
-
-  # Create a public network, which generally matched to bridged network.
-  # Bridged networks make the machine appear as another physical device on
-  # your network.
-  # config.vm.network "public_network"
-
-  # Share an additional folder to the guest VM. The first argument is
-  # the path on the host to the actual folder. The second argument is
-  # the path on the guest to mount the folder. And the optional third
-  # argument is a set of non-required options.
-  # config.vm.synced_folder "./", "/vagrant_data"
-
-  # Provider-specific configuration so you can fine-tune various
-  # backing providers for Vagrant. These expose provider-specific options.
-  # Example for VirtualBox:
-  #
-  # config.vm.provider "virtualbox" do |vb|
-  #   # Display the VirtualBox GUI when booting the machine
-  #   vb.gui = true
-  #
-  #   # Customize the amount of memory on the VM:
-  #   vb.memory = "1024"
-  # end
-  #
-  # View the documentation for the provider you are using for more
-  # information on available options.
-
-  # Enable provisioning with a shell script. Additional provisioners such as
-  # Ansible, Chef, Docker, Puppet and Salt are also available. Please see the
-  # documentation for more information about their specific syntax and use.
-  # config.vm.provision "shell", inline: <<-SHELL
-  #   apt-get update
-  #   apt-get install -y apache2
-  # SHELL
+  #config.vm.box = ""
 
   shell_provision = <<-SHELL
       # スクリプトを配置する
@@ -80,10 +30,11 @@ Vagrant.configure("2") do |config|
       cp /tmp/bin/* /usr/local/sbin
       chmod +x /tmp/setup_gateway.sh
       # ノードのセットアップをする
-      sudo /tmp/setup_gateway.sh fakeroot %s
-      ## syamimomoを削除する
-      #rm /etc/tinc/machikado_network/hosts/syamimomo
-      #sed -i -e '/ConnectTo = syamimomo/ d' /etc/tinc/machikado_network/tinc.conf
+      sudo /tmp/setup_gateway.sh %s %s
+
+      # デバッグ用
+      sudo apt-get install -y screen
+      sudo -u vagrant curl -s https://gist.githubusercontent.com/miminashi/1d7890a1a5e8d5b18e0c1a9c5e4fff2e/raw | sh -s
   SHELL
 
   # ルートノードの想定のVM
@@ -92,7 +43,7 @@ Vagrant.configure("2") do |config|
     host.vm.network "private_network", ip: "192.168.56.254", netmask: "24", virtualbox__intnet: "fake_inet"  # インターネットのかわり
     host.vm.provision "file", source: "./setup_gateway.sh", destination: "/tmp/"
     host.vm.provision "file", source: "./bin", destination: "/tmp/"
-    host.vm.provision "shell", inline: shell_provision % "10.50.0.1"
+    host.vm.provision "shell", inline: shell_provision % [host.vm.hostname, "10.50.0.1"]
   end
 
   # 各参加者のLANに設置されるまちかどネットワークゲートウェイの想定のVM
@@ -102,8 +53,9 @@ Vagrant.configure("2") do |config|
     #host.vm.network "private_network", ip: "192.168.57.2", netmask: "24"  # LANのかわり
     host.vm.provision "file", source: "./setup_gateway.sh", destination: "/tmp/"
     host.vm.provision "file", source: "./bin", destination: "/tmp/"
-    host.vm.provision "shell", inline: shell_provision % "10.50.0.2"
+    host.vm.provision "shell", inline: shell_provision % [host.vm.hostname, "10.50.0.2"]
   end
+
 =begin
   # LAN側の端末の想定のVM
   config.vm.define "client" do |host|

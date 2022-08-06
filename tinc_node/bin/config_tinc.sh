@@ -12,7 +12,8 @@
 
 set -e
 
-tinc_conf=/etc/tinc/machikado_network/tinc.conf
+tinc_netname="mchkd"
+tinc_conf=/etc/tinc/"${tinc_netname}"/tinc.conf
 #remote_node_name="fakeroot"
 #remote_node_address="192.168.56.254"
 #remote_node_port="655"
@@ -39,7 +40,7 @@ node_name="$(grep -e '^Name' < "${tinc_conf}" |
   printf -- '-----BEGIN RSA PUBLIC KEY-----\n'
   printf '%s\n' "${remote_node_key}" | fold -w 64
   printf -- '-----END RSA PUBLIC KEY-----\n'
-} > /etc/tinc/machikado_network/hosts/"${remote_node_name}"
+} > /etc/tinc/"${tinc_netname}"/hosts/"${remote_node_name}"
 
 # tinc.conf の更新
 cat > "${tinc_conf}" <<EOF
@@ -47,7 +48,9 @@ Name = ${node_name}
 Mode = switch
 Device = /dev/net/tun
 EOF
-printf 'ConnectTo = %s\n' "${remote_node_name}" >> "${tinc_conf}"
+if [ -n "${remote_node_address}" ] && [ -n "${remote_node_port}" ]; then
+  printf 'ConnectTo = %s\n' "${remote_node_name}" >> "${tinc_conf}"
+fi
 
 # tincサービスを再起動する
-systemctl restart tinc@machikado_network.service
+systemctl restart tinc@"${tinc_netname}".service
