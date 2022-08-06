@@ -138,12 +138,12 @@ pub fn setup_tinc(name: String, ip_addr: Ipv4Addr) {
         "    {} service tinc@machikado_network.service",
         info!("Enable")
     );
-    // run_command_and_wait("systemctl", &["enable", "tinc@machikado_network.service"]);
+    run_command_and_wait("systemctl", &["enable", "tinc@machikado_network.service"]);
     println!(
         "    {} service tinc@machikado_network.service",
         info!("Starting")
     );
-    // run_command_and_wait("systemctl", &["start", "tinc@machikado_network.service"]);
+    run_command_and_wait("systemctl", &["start", "tinc@machikado_network.service"]);
     println!();
     println!("{}", "==== Setup Completed! ====".bright_cyan().bold());
     println!(
