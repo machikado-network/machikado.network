@@ -3,7 +3,7 @@
 
 Vagrant.configure("2") do |config|
   config.vm.provider "virtualbox" do |vb|
-    vb.customize ['modifyvm', :id, '--natnet1', '172.16.30.0/24']
+    vb.customize ['modifyvm', :id, '--natnet1', '192.168.4.0/24']
   end
 
   # boxes at https://vagrantcloud.com/search.
@@ -29,20 +29,20 @@ Vagrant.configure("2") do |config|
   # ルートノードの想定のVM
   config.vm.define "fakeroot" do |host|
     host.vm.hostname = "fakeroot"
-    host.vm.network "private_network", ip: "192.168.56.254", netmask: "24", virtualbox__intnet: "fake_inet"  # インターネットのかわり
+    host.vm.network "private_network", ip: "172.16.38.1", netmask: "24", virtualbox__intnet: "fake_inet"  # インターネットのかわり
     host.vm.provision "file", source: "./setup_gateway.sh", destination: "/tmp/"
     host.vm.provision "file", source: "./bin", destination: "/tmp/"
-    host.vm.provision "shell", inline: shell_provision % [host.vm.hostname, "10.50.0.1"]
+    host.vm.provision "shell", inline: shell_provision % [host.vm.hostname, "10.50.255.1"]
   end
 
   # 各参加者のLANに設置されるまちかどネットワークゲートウェイの想定のVM
   config.vm.define "gateway" do |host|
     host.vm.hostname = "gateway"
-    host.vm.network "private_network", ip: "192.168.56.2", netmask: "24", virtualbox__intnet: "fake_inet"  # インターネットのかわり
-    #host.vm.network "private_network", ip: "192.168.57.2", netmask: "24"  # LANのかわり
+    host.vm.network "private_network", ip: "172.16.38.2", netmask: "24", virtualbox__intnet: "fake_inet"  # インターネットのかわり
+    host.vm.network "private_network", ip: "192.168.111.2", netmask: "24", virtualbox__intnet: "fake_lan" # LANのかわり
     host.vm.provision "file", source: "./setup_gateway.sh", destination: "/tmp/"
     host.vm.provision "file", source: "./bin", destination: "/tmp/"
-    host.vm.provision "shell", inline: shell_provision % [host.vm.hostname, "10.50.0.2"]
+    host.vm.provision "shell", inline: shell_provision % [host.vm.hostname, "10.50.255.2"]
   end
 
 =begin
