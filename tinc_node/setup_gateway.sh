@@ -14,6 +14,12 @@ set -e
 
 tinc_netname="mchkd"
 
+# root権限で実行していなければセットアップを中止
+if ! test "$(id -u)" == "0"; then
+  echo "root権限で実行する必要があります. 終了します" >&2
+  exit 1
+fi
+
 # Debian系かどうかをチェックする
 if ! test -f /etc/debian_version; then
   echo "Debian系のOSではありません. 終了します" >&2
