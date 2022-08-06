@@ -1,17 +1,20 @@
-mod setup;
+mod aptos;
+mod tinc;
+mod utils;
 
+use crate::tinc::{run_tinc_command, TincCommand};
 use clap::{Parser, Subcommand};
-use crate::setup::{run_setup_command, SetupCommand};
 
 #[derive(Subcommand, Debug)]
 enum SubCommand {
-    Setup {
+    /// Machikado Network Tinc Commands
+    Tinc {
         #[clap(subcommand)]
-        subcommand: SetupCommand,
+        subcommand: TincCommand,
     },
 }
 
-/// Simple program to greet a person
+/// A CLI for Machikado Network
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
@@ -22,8 +25,6 @@ struct Args {
 fn main() {
     let args = Args::parse();
     match args.subcommand {
-        SubCommand::Setup {subcommand} => {
-            run_setup_command(subcommand);
-        }
+        SubCommand::Tinc { subcommand } => run_tinc_command(subcommand),
     }
 }
