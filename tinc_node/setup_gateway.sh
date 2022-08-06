@@ -162,9 +162,6 @@ sed -i -e '/^# EXTRA="-d"$/ s/# //' /etc/default/tinc
 systemctl enable tinc@"${tinc_netname}".service
 systemctl start tinc@"${tinc_netname}".service
 
-## 完了メッセージを表示する
-#cat /etc/tinc/"${tinc_netname}"/hosts/"${node_name}"
-
 # 完了メッセージを表示する
 printf '\n'
 printf 'tincのセットアップが完了しました\n'
