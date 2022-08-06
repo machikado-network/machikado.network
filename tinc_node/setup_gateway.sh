@@ -20,12 +20,13 @@ if ! test "$(id -u)" == "0"; then
   exit 1
 fi
 
-# Debian系かどうかをチェックする
+# Debian系のOSでなければセットアップを中止
 if ! test -f /etc/debian_version; then
   echo "Debian系のOSではありません. 終了します" >&2
   exit 1
 fi
 
+# 設定が既に存在していたらセットアップを中止
 if test -d /etc/tinc/"${tinc_netname}"; then
   printf 'エラー: /etc/tinc/"${tinc_netname}" は既に存在します\n' >&2
   printf 'セットアップを中止します\n' >&2
@@ -36,6 +37,7 @@ fi
 node_name="${1}"
 ip_address="${2}"
 
+# ノード名が無効な文字列だったらセットアップを中止
 if echo "${node_name}" | grep -v '^[0-9a-z][0-9a-z]*$'; then
   printf 'エラー: ノード名に使える文字は [a-z0-9] のみです\n' >&2
   printf 'セットアップを中止します\n' >&2
