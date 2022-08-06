@@ -11,6 +11,9 @@ Vagrant.configure("2") do |config|
   #config.vm.box = "debian/bullseye64"
 
   shell_provision = <<-SHELL
+      # このスクリプト内でエラーがでたときは終了する
+      set -e
+
       # スクリプトを配置する
       chmod +x /tmp/bin/*
       cp /tmp/bin/* /usr/local/sbin
@@ -20,7 +23,7 @@ Vagrant.configure("2") do |config|
 
       # デバッグ用
       apt-get install -y screen socat tcpdump vim
-      sudo -u vagrant sh -c 'wget -O - https://gist.githubusercontent.com/miminashi/1d7890a1a5e8d5b18e0c1a9c5e4fff2e/raw | sh -s'
+      sudo -u vagrant sh -c 'wget -q -O - https://gist.githubusercontent.com/miminashi/1d7890a1a5e8d5b18e0c1a9c5e4fff2e/raw | sh -s'
   SHELL
 
   # ルートノードの想定のVM
