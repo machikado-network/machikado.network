@@ -127,8 +127,12 @@ pub fn setup_tinc(name: String, ip_addr: Ipv4Addr) {
     println!();
     create_tinc_down();
     println!();
-    println!("    {} RSA Key Pair", info!("Creating"));
-    run_command_and_wait("tincd", &["-K", "-n", "machikado_network"]);
+    println!("    {} RSA Key Pair", info!("Generating"));
+    let output = Command::new("tincd")
+        .args(&["-K", "-n", "machikado_network"])
+        .output()
+        .expect("Failed to run `which tincd`");
+    println!("{}", String::from_utf8_lossy(&output.stdout));
     println!("    {} debug log setting", info!("Changing"));
     run_command_and_wait(
         "sed",
@@ -138,12 +142,12 @@ pub fn setup_tinc(name: String, ip_addr: Ipv4Addr) {
         "    {} service tinc@machikado_network.service",
         info!("Enable")
     );
-    run_command_and_wait("systemctl", &["enable", "tinc@machikado_network.service"]);
+    // run_command_and_wait("systemctl", &["enable", "tinc@machikado_network.service"]);
     println!(
         "    {} service tinc@machikado_network.service",
         info!("Starting")
     );
-    run_command_and_wait("systemctl", &["start", "tinc@machikado_network.service"]);
+    // run_command_and_wait("systemctl", &["start", "tinc@machikado_network.service"]);
     println!();
     println!("{}", "==== Setup Completed! ====".bright_cyan().bold());
     println!(
