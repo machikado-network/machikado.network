@@ -39,10 +39,18 @@ export function useAptos() {
         })
     }
 
+    async function updateAccount() {
+        dispatch({
+            type: AptosActionType.UpdateAccount,
+            account: await window.aptos?.account() ?? null,
+        })
+    }
+
     return {
         isConnected: state.isConnected,
         account: state.account,
         connect,
         disconnect,
+        updateAccount,
     }
 }
