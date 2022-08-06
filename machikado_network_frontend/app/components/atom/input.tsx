@@ -6,6 +6,7 @@ interface InputProps {
 
 const Input = ({value, setValue}: InputProps) => {
     return <input
+        style={{fontFamily: "Menlo"}}
         value={value} onChange={event => setValue(event.target.value)}
         className="p-2 border-2 border-indigo-500 rounded-md my-2 w-full"
     />

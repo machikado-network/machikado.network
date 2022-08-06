@@ -73,7 +73,7 @@ export async function accountResource(address: string, resourceType: string): Pr
 }
 
 
-export async function tableItems(handle: string, keyType: string, valueType: string, key: any) {
+export async function tableItems<T>(handle: string, keyType: string, valueType: string, key: any) {
     const response = await fetch(
         `${TESTNET_URL}/tables/${handle}/item`,
         {
@@ -88,5 +88,5 @@ export async function tableItems(handle: string, keyType: string, valueType: str
             ]
         }
     )
-    return await response.json()
+    return await response.json<T>()
 }
