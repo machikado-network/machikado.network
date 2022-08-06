@@ -61,22 +61,6 @@ sed 's/{NODE_NAME}/'"${node_name}"'/' > /etc/tinc/"${tinc_netname}"/hosts/"${nod
 # {NODE_NAME}
 EOF
 
-## 初期ルートノードの設定
-##  - syami momo
-#cat > /etc/tinc/"${tinc_netname}"/hosts/syamimomo <<'EOF'
-## syamimomo
-#Address = 52.194.124.212
-#Port = 655
-#Ed25519PublicKey = gK0Altm/AO+Zgj7EeFQ2Fi+bMQAKKwnY61r+wQk3AHG
-#EOF
-
-## tinc.conf の作成
-#sed -e 's/{NODE_NAME}/'"${node_name}"'/' > /etc/tinc/"${tinc_netname}"/tinc.conf <<'EOF'
-#Name = {NODE_NAME}
-#Mode = switch
-#Device = /dev/net/tun
-#ConnectTo = syamimomo
-#EOF
 # tinc.conf の作成
 sed -e 's/{NODE_NAME}/'"${node_name}"'/' > /etc/tinc/"${tinc_netname}"/tinc.conf <<'EOF'
 Name = {NODE_NAME}
