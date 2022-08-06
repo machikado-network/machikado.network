@@ -1,5 +1,5 @@
+use crate::utils::run_command_and_wait;
 use colored::*;
-use std::ffi::OsStr;
 use std::fs;
 use std::io::Write;
 use std::net::Ipv4Addr;
@@ -113,7 +113,7 @@ pub fn setup_tinc(name: String, ip_addr: Ipv4Addr) {
     println!(
         "    {} Machikado Network Config Directory to {}",
         info!("Creating"),
-        info!("/etc/tinc/machikado_network")
+        info!("/etc/tinc/mchkd")
     );
     create_directories();
     println!();
@@ -129,7 +129,7 @@ pub fn setup_tinc(name: String, ip_addr: Ipv4Addr) {
     println!();
     println!("    {} RSA Key Pair", info!("Generating"));
     let output = Command::new("tincd")
-        .args(&["-K", "-n", "machikado_network"])
+        .args(&["-K", "-n", "mchkd"])
         .output()
         .expect("Failed to run `which tincd`");
     println!("{}", String::from_utf8_lossy(&output.stdout));
@@ -138,16 +138,10 @@ pub fn setup_tinc(name: String, ip_addr: Ipv4Addr) {
         "sed",
         &["-i", "-e", "/^# EXTRA=\"-d\"$/ s/# //", "/etc/default/tinc"],
     );
-    println!(
-        "    {} service tinc@machikado_network.service",
-        info!("Enable")
-    );
-    // run_command_and_wait("systemctl", &["enable", "tinc@machikado_network.service"]);
-    println!(
-        "    {} service tinc@machikado_network.service",
-        info!("Starting")
-    );
-    // run_command_and_wait("systemctl", &["start", "tinc@machikado_network.service"]);
+    println!("    {} service tinc@mchkd.service", info!("Enable"));
+    run_command_and_wait("systemctl", &["enable", "tinc@mchkd.service"]);
+    println!("    {} service tinc@mchkd.service", info!("Starting"));
+    run_command_and_wait("systemctl", &["start", "tinc@mchkd.service"]);
     println!();
     println!("{}", "==== Setup Completed! ====".bright_cyan().bold());
     println!(
@@ -157,39 +151,30 @@ pub fn setup_tinc(name: String, ip_addr: Ipv4Addr) {
 }
 
 fn get_public_key(name: String) -> String {
-    fs::read_to_string(format!("/etc/tinc/machikado_network/hosts/{}", name)).unwrap()
+    fs::read_to_string(format!("/etc/tinc/mchkd/hosts/{}", name)).unwrap()
 }
 
 fn create_tinc_down() {
-    println!(
-        "    {} /etc/tinc/machikado_network/tinc-down",
-        info!("Creating"),
-    );
-    let mut file = fs::File::create("/etc/tinc/machikado_network/tinc-down").unwrap();
+    println!("    {} /etc/tinc/mchkd/tinc-down", info!("Creating"),);
+    let mut file = fs::File::create("/etc/tinc/mchkd/tinc-down").unwrap();
     file.write_all(TINC_DOWN.as_bytes()).unwrap();
 
     println!(
-        "    {} `chmod +x /etc/tinc/machikado_network/tinc-down`",
+        "    {} `chmod +x /etc/tinc/mchkd/tinc-down`",
         info!("Running")
     );
-    run_command_and_wait("chmod", &["+x", "/etc/tinc/machikado_network/tinc-down"]);
+    run_command_and_wait("chmod", &["+x", "/etc/tinc/mchkd/tinc-down"]);
 }
 
 fn create_nat_iptables() {
-    println!(
-        "    {} /etc/tinc/machikado_network/nat.iptables",
-        info!("Creating"),
-    );
-    let mut file = fs::File::create("/etc/tinc/machikado_network/nat.iptables").unwrap();
+    println!("    {} /etc/tinc/mchkd/nat.iptables", info!("Creating"),);
+    let mut file = fs::File::create("/etc/tinc/mchkd/nat.iptables").unwrap();
     file.write_all(NAT_SETTING.as_bytes()).unwrap();
 }
 
 fn create_tinc_up(ip_addr: Ipv4Addr) {
-    println!(
-        "    {} /etc/tinc/machikado_network/tinc-up",
-        info!("Creating"),
-    );
-    let mut file = fs::File::create("/etc/tinc/machikado_network/tinc-up").unwrap();
+    println!("    {} /etc/tinc/mchkd/tinc-up", info!("Creating"),);
+    let mut file = fs::File::create("/etc/tinc/mchkd/tinc-up").unwrap();
     let content = format!(
         "#!/bin/sh\n\
         ip link add br0 type bridge\n\
@@ -199,25 +184,22 @@ fn create_tinc_up(ip_addr: Ipv4Addr) {
         #ip link set dev eth1 master br0\n\
         ip addr add {}/8 dev br0\n\
         echo 1 > /proc/sys/net/ipv4/ip_forward\n\
-        iptables-restore < /etc/tinc/machikado_network/nat.iptables\n\
+        iptables-restore < /etc/tinc/mchkd/nat.iptables\n\
         ",
         ip_addr
     );
     file.write_all(content.as_bytes()).unwrap();
 
     println!(
-        "    {} `chmod +x /etc/tinc/machikado_network/tinc-up`",
+        "    {} `chmod +x /etc/tinc/mchkd/tinc-up`",
         info!("Running")
     );
-    run_command_and_wait("chmod", &["+x", "/etc/tinc/machikado_network/tinc-up"]);
+    run_command_and_wait("chmod", &["+x", "/etc/tinc/mchkd/tinc-up"]);
 }
 
 fn create_tinc_conf(name: String) {
-    println!(
-        "    {} /etc/tinc/machikado_network/tinc.conf",
-        info!("Creating"),
-    );
-    let mut file = fs::File::create("/etc/tinc/machikado_network/tinc.conf").unwrap();
+    println!("    {} /etc/tinc/mchkd/tinc.conf", info!("Creating"),);
+    let mut file = fs::File::create("/etc/tinc/mchkd/tinc.conf").unwrap();
     let content = format!(
         "Name = {name}\n\
         Mode = switch\n\
@@ -228,48 +210,26 @@ fn create_tinc_conf(name: String) {
 }
 
 fn create_node_file(name: String) {
-    println!(
-        "    {} /etc/tinc/machikado_network/{}",
-        info!("Creating"),
-        name
-    );
-    let mut file = fs::File::create(format!("/etc/tinc/machikado_network/hosts/{}", name)).unwrap();
+    println!("    {} /etc/tinc/mchkd/{}", info!("Creating"), name);
+    let mut file = fs::File::create(format!("/etc/tinc/mchkd/hosts/{}", name)).unwrap();
     file.write_all(format!("# {}\n", name).as_bytes()).unwrap();
 }
 
 fn create_directories() {
     println!(
-        "    {} `mkdir /etc/tinc/machikado_network /etc/tinc/machikado_network/hosts`",
+        "    {} `mkdir /etc/tinc/mchkd /etc/tinc/mchkd/hosts`",
         info!("Running")
     );
-    run_command_and_wait(
-        "mkdir",
-        &[
-            "/etc/tinc/machikado_network",
-            "/etc/tinc/machikado_network/hosts",
-        ],
-    )
+    run_command_and_wait("mkdir", &["/etc/tinc/mchkd", "/etc/tinc/mchkd/hosts"])
 }
 
 fn check_machikado_network_installed() {
     let output = Command::new("test")
-        .args(&["-d", "/etc/tinc/machikado_network"])
+        .args(&["-d", "/etc/tinc/mchkd"])
         .output()
-        .expect("Failed to run `test -d /etc/tinc/machikado_network`");
+        .expect("Failed to run `test -d /etc/tinc/mchkd`");
     if output.status.success() {
-        println!("    {} /etc/tinc/machikado_network is already exists. If you want to continue, you have to run `rm -d /etc/tinc/machikado_network`.", error!("Error"))
-    }
-}
-
-fn run_command_and_wait<I, S>(cmd: &str, args: I)
-where
-    I: IntoIterator<Item = S>,
-    S: AsRef<OsStr>,
-{
-    let r = Command::new(cmd).args(args).spawn().unwrap();
-    let output = r.wait_with_output().unwrap();
-    if !output.status.success() {
-        println!("    {} when running `{cmd}`", error!("Error"))
+        println!("    {} /etc/tinc/mchkd is already exists. If you want to continue, you have to run `rm -d /etc/tinc/mchkd`.", error!("Error"))
     }
 }
 

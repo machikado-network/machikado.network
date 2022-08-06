@@ -1,4 +1,6 @@
+mod aptos;
 mod tinc;
+mod utils;
 
 use crate::tinc::{run_tinc_command, TincCommand};
 use clap::{Parser, Subcommand};

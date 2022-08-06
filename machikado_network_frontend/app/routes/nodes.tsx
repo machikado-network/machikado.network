@@ -1,10 +1,10 @@
 import {useEffect, useState} from "react";
-import {useAptos} from "~/hooks/aptos";
-import AptosLoginWrapper from "~/components/AptosLoginWrapper";
 import {accountResource, tableItems} from "~/lib/aptos";
 import {PUBLISHER} from "~/lib/preferences";
 
-type Option<T> = [T] | []
+type Option<T> = {
+    vec: [T] | []
+}
 
 interface TincNode {
     name: string
@@ -59,7 +59,7 @@ const Nodes = () => {
                         (node, i2) => <tr key={`${i}-${i2}`}>
                             <td className="border px-4 py-2">{account.name}</td>
                             <td className="border px-4 py-2">{node.name}</td>
-                            <td className="border px-4 py-2">{node.public_key.slice(0, 32)}...</td>
+                            <td className="border px-4 py-2">{node.public_key}...</td>
                         </tr>)}
                 </>
             )}
