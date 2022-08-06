@@ -30,10 +30,6 @@ jobs:
         id: tag
         run: echo ::set-output name=name::${GITHUB_REF/refs\/tags\//}
 
-      - name: Install openSSL
-        run: |
-          sudo apt-get install libssl-dev
-
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
