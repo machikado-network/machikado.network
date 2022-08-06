@@ -89,15 +89,14 @@ EOF
 # このシェルスクリプトはVPNセッションの開始時に実行される
 sed -e 's/{TINC_NETNAME}/'"${tinc_netname}"'/' -e 's/{IP_ADDRESS}/'"${ip_address}"'/' > /etc/tinc/"${tinc_netname}"/tinc-up <<'EOF'
 #!/bin/sh
-#ip link add br0 type bridge
-#ip link set br0 up
+ip link add br0 type bridge
+ip link set br0 up
 ip link set $INTERFACE up
-#ip link set dev $INTERFACE master br0
+ip link set dev $INTERFACE master br0
 #ip link set dev eth1 master br0
-#ip addr add {IP_ADDRESS}/8 dev br0
-ip addr add {IP_ADDRESS}/8 dev $INTERFACE
+ip addr add {IP_ADDRESS}/8 dev br0
 echo 1 > /proc/sys/net/ipv4/ip_forward
-#iptables-restore < /etc/tinc/{TINC_NETNAME}/nat.iptables
+iptables-restore < /etc/tinc/{TINC_NETNAME}/nat.iptables
 EOF
 chmod +x /etc/tinc/"${tinc_netname}"/tinc-up
 
@@ -144,11 +143,11 @@ EOF
 #   このシェルスクリプトはVPNセッションの終了時に実行される
 cat > /etc/tinc/"${tinc_netname}"/tinc-down <<'EOF'
 #!/bin/sh
-#ip link set dev $INTERFACE nomaster
+ip link set dev $INTERFACE nomaster
 ip link set dev $INTERFACE down
 #ip link set dev eth1 nomaster
-#ip link set dev br0 down
-#ip link del dev br0
+ip link set dev br0 down
+ip link del dev br0
 EOF
 chmod +x /etc/tinc/"${tinc_netname}"/tinc-down
 
