@@ -1,27 +1,11 @@
 import {useEffect, useState} from "react";
 import {accountResource, tableItems} from "~/lib/aptos";
 import {PUBLISHER} from "~/lib/preferences";
+import type {AptosOption, MachikadoAccount} from "~/lib/MachikadoNetwork";
 
-type Option<T> = {
-    vec: [T] | []
-}
 
-interface TincNode {
-    name: string
-    public_key: string
-    inet_hostname: Option<string>
-    inet_port: Option<number>
-}
+const getOption = (o: AptosOption<any>) => o.vec.length === 1 ? o.vec[0] : null
 
-interface Subnet {
-    id: number
-}
-
-interface MachikadoAccount {
-    name: string
-    nodes: TincNode[]
-    subnets: Subnet[]
-}
 
 const Nodes = () => {
     const [accounts, setAccounts] = useState<MachikadoAccount[]>([])
@@ -50,6 +34,8 @@ const Nodes = () => {
                 <th className="px-4 py-2">ユーザー</th>
                 <th className="px-4 py-2">ノード名</th>
                 <th className="px-4 py-2">Public Key</th>
+                <th className="px-4 py-2">Inet Hostname</th>
+                <th className="px-4 py-2">Inet Port</th>
             </tr>
             </thead>
             <tbody>
@@ -59,7 +45,9 @@ const Nodes = () => {
                         (node, i2) => <tr key={`${i}-${i2}`}>
                             <td className="border px-4 py-2">{account.name}</td>
                             <td className="border px-4 py-2">{node.name}</td>
-                            <td className="border px-4 py-2">{node.public_key}...</td>
+                            <td className="border px-4 py-2">{node.public_key.substring(0, 30)}...</td>
+                            <td className="border px-4 py-2">{getOption(node.inet_hostname) ?? "なし"}</td>
+                            <td className="border px-4 py-2">{getOption(node.inet_port) ?? "なし"}</td>
                         </tr>)}
                 </>
             )}

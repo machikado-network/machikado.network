@@ -2,6 +2,29 @@ import type {AptosPayload} from "~/lib/aptos/TransactionBuilder";
 import type {Address} from "~/lib/aptos";
 import {waitForTransaction} from "~/lib/aptos";
 
+
+export type AptosOption<T> = {
+    vec: [T] | []
+}
+
+export interface TincNode {
+    name: string
+    public_key: string
+    inet_hostname: AptosOption<string>
+    inet_port: AptosOption<number>
+}
+
+export interface Subnet {
+    id: number
+}
+
+export interface MachikadoAccount {
+    name: string
+    nodes: TincNode[]
+    subnets: Subnet[]
+}
+
+
 export async function createAccountStore(publisher: Address) {
     const payload: AptosPayload = {
         type: "script_function_payload",
@@ -43,6 +66,17 @@ export async function createTincNode(publisher: Address, target: Address, name: 
         type: "script_function_payload",
         function: `${publisher}::MachikadoNetwork::create_node`,
         arguments: [target, toHex(name), toHex(publicKey)],
+        type_arguments: [],
+    }
+    const tx = await window.aptos!.signAndSubmitTransaction(payload)
+    return await waitForTransaction(tx)
+}
+
+export async function updateInetHost(publisher: Address, target: Address, name: string, hostname: string, port: number) {
+    const payload: AptosPayload = {
+        type: "script_function_payload",
+        function: `${publisher}::MachikadoNetwork::update_node_inet_host`,
+        arguments: [target, toHex(name), toHex(hostname), port],
         type_arguments: [],
     }
     const tx = await window.aptos!.signAndSubmitTransaction(payload)

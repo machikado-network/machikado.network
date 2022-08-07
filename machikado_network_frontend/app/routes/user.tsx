@@ -3,6 +3,7 @@ import CreateAccount from "~/components/organism/CreateAccount";
 import {useAptos} from "~/hooks/aptos";
 import {PUBLISHER} from "~/lib/preferences";
 import CreateTincNode from "~/components/organism/CreateTincNode";
+import UpdateInetHost from "~/components/organism/UpdateInetHost";
 
 const User = () => {
     const aptos = useAptos()
@@ -37,6 +38,7 @@ const User = () => {
             <div className="my-4">
                 <CreateAccount />
                 <CreateTincNode />
+                <UpdateInetHost />
             </div>
         </div>
     </AptosLoginWrapper>
