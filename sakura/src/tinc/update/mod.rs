@@ -1,6 +1,7 @@
 use crate::aptos;
 use crate::utils::run_command_and_wait;
 use colored::Colorize;
+use regex::Regex;
 use std::io::Write;
 use std::thread::sleep;
 use std::time::Duration;
@@ -31,18 +32,23 @@ pub fn direct_update_nodes(no_restart: bool) {
 
     let mut is_updated = false;
 
+    let name_regex = Regex::new(r"Name = (?P<name>[0-9a-z]+)\n").unwrap();
     let conf = std::fs::read_to_string("/etc/tinc/mchkd/tinc.conf")
         .expect("Failed to open /etc/tinc/mchkd/tinc.conf");
-    let lines = conf.split('\n').collect::<Vec<&str>>();
-    let name = lines.first().expect("Failed to get name from tinc.conf");
-    assert!(name.starts_with("Name = "));
+    let name = name_regex
+        .captures(&*conf)
+        .expect("Failed to find name from tinc.conf")
+        .name("name")
+        .expect("Failed to find name from tinc.conf")
+        .as_str()
+        .to_string();
 
     println!("    {} tinc.conf", "Resetting".bright_cyan().bold());
     let _ = std::fs::remove_file("/etc/tinc/mchkd/tinc.conf");
     let mut tincconf =
         std::fs::File::create("/etc/tinc/mchkd/tinc.conf").expect("Failed to create file");
     tincconf
-        .write_all(format!("{}\nMode = switch\nDevice = /dev/net/tun\n", name).as_bytes())
+        .write_all(format!("Name = {}\nMode = switch\nDevice = /dev/net/tun\n", name).as_bytes())
         .expect("Failed to write to tinc.conf");
 
     for address in addresses {
@@ -64,10 +70,12 @@ pub fn direct_update_nodes(no_restart: bool) {
             if !node.inet_hostname.vec.is_empty() {
                 content += &*format!("Address = {}\n", node.inet_hostname.vec.first().unwrap());
 
-                // Write ConnectTo = {Name}
-                tincconf
-                    .write_all(format!("ConnectTo = {}\n", node.name).as_bytes())
-                    .expect("Failed to write tinc.conf")
+                // Write ConnectTo = {Name} if node is not myself
+                if name != node.name {
+                    tincconf
+                        .write_all(format!("ConnectTo = {}\n", node.name).as_bytes())
+                        .expect("Failed to write tinc.conf");
+                }
             }
             if !node.inet_port.vec.is_empty() {
                 content += &*format!("Port = {}\n", node.inet_port.vec.first().unwrap());
@@ -123,4 +131,22 @@ pub fn direct_update_nodes(no_restart: bool) {
     }
     println!("{} tinc", "Restarting".bright_cyan().bold());
     run_command_and_wait("systemctl", &["restart", "tinc@mchkd.service"]);
+}
+
+#[cfg(test)]
+mod tests {
+    use regex::Regex;
+
+    #[test]
+    fn test_regex() {
+        let name_regex = Regex::new(r"Name = (?P<name>[0-9a-z]+)\n").unwrap();
+        let conf = "Name = syamimomo\nMode = switch\nDevice = /dev/net/tun\nConnectTo = syamimomo";
+        let name = name_regex
+            .captures(conf)
+            .expect("Failed to find name from tinc.conf")
+            .name("name")
+            .expect("Failed to find name from tinc.conf")
+            .as_str();
+        assert_eq!(name, "syamimomo")
+    }
 }
