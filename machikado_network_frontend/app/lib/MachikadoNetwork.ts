@@ -1,6 +1,7 @@
 import type {AptosPayload} from "~/lib/aptos/TransactionBuilder";
 import type {Address} from "~/lib/aptos";
-import {waitForTransaction} from "~/lib/aptos";
+import {accountResource, tableItems, waitForTransaction} from "~/lib/aptos";
+import {PUBLISHER} from "~/lib/preferences";
 
 
 export type AptosOption<T> = {
@@ -81,4 +82,24 @@ export async function updateInetHost(publisher: Address, target: Address, name: 
     }
     const tx = await window.aptos!.signAndSubmitTransaction(payload)
     return await waitForTransaction(tx)
+}
+
+export async function createSubnet(publisher: Address, target: Address, id: number) {
+    const payload: AptosPayload = {
+        type: "script_function_payload",
+        function: `${publisher}::MachikadoNetwork::create_subnet`,
+        arguments: [target, id],
+        type_arguments: [],
+    }
+    const tx = await window.aptos!.signAndSubmitTransaction(payload)
+    return await waitForTransaction(tx)
+}
+
+export async function getMachikadoAccount(publisher: Address, target: Address, myAddress: Address) {
+    const resource = await accountResource(target, `${publisher}::MachikadoAccount::AccountStore`)
+    const store = resource.data.accounts.handle;
+    const id = {
+        owner: myAddress,
+    }
+    return await tableItems<MachikadoAccount>(store, `${PUBLISHER}::MachikadoAccount::AccountKey`, `${PUBLISHER}::MachikadoAccount::Account`, id);
 }

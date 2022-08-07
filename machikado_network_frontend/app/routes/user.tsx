@@ -4,6 +4,8 @@ import {useAptos} from "~/hooks/aptos";
 import {PUBLISHER} from "~/lib/preferences";
 import CreateTincNode from "~/components/organism/CreateTincNode";
 import UpdateInetHost from "~/components/organism/UpdateInetHost";
+import CreateSubnet from "~/components/organism/CreateSubnet";
+import AccountInfo from "~/components/organism/AccountInfo";
 
 const User = () => {
     const aptos = useAptos()
@@ -36,9 +38,17 @@ const User = () => {
                 </div>
             </div>
             <div className="my-4">
-                <CreateAccount />
+                <AccountInfo />
+                {aptos.machikadoAccount == null
+                    ? <CreateAccount />
+                    : null
+                }
                 <CreateTincNode />
                 <UpdateInetHost />
+                {(aptos.machikadoAccount?.subnets.length ?? 0) === 0
+                    ? <CreateSubnet />
+                    : null
+                }
             </div>
         </div>
     </AptosLoginWrapper>

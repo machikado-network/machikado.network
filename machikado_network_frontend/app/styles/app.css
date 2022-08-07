@@ -687,6 +687,11 @@ video {
   border-color: rgb(99 102 241 / var(--tw-border-opacity));
 }
 
+.border-momo {
+  --tw-border-opacity: 1;
+  border-color: rgb(240 136 168 / var(--tw-border-opacity));
+}
+
 .bg-momo {
   --tw-bg-opacity: 1;
   background-color: rgb(240 136 168 / var(--tw-bg-opacity));

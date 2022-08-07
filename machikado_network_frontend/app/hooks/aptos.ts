@@ -1,6 +1,9 @@
 import {useContext, useEffect} from "react";
 import {AptosContext} from "~/lib/contexts/AptosContext";
 import {AptosActionType} from "~/lib/contexts/AptosContextAction";
+import {getMachikadoAccount} from "~/lib/MachikadoNetwork";
+import {PUBLISHER} from "~/lib/preferences";
+import {async} from "rxjs";
 
 export function useAptos() {
     const {state, dispatch} = useContext(AptosContext)
@@ -11,8 +14,28 @@ export function useAptos() {
                 type: AptosActionType.UpdateIsConnected,
                 value: await window.aptos?.isConnected() ?? false
             })
+            if (state.isConnected) {
+                const account = await window.aptos!.account()
+                dispatch({
+                    type: AptosActionType.UpdateAccount,
+                    account: account
+                })
+                const machikadoAccount = await getMachikadoAccount(PUBLISHER, PUBLISHER, (await window.aptos!.account()).address)
+                dispatch({
+                    type: AptosActionType.UpdateMachikadoAccount,
+                    account: machikadoAccount,
+                })
+            }
         })()
     }, [dispatch])
+
+    async function updateMachikadoAccount() {
+        const machikadoAccount = await getMachikadoAccount(PUBLISHER, PUBLISHER, (await window.aptos!.account()).address)
+        dispatch({
+            type: AptosActionType.UpdateMachikadoAccount,
+            account: machikadoAccount,
+        })
+    }
 
     async function connect() {
         await window.aptos!.connect();
@@ -49,8 +72,10 @@ export function useAptos() {
     return {
         isConnected: state.isConnected,
         account: state.account,
+        machikadoAccount: state.machikadoAccount,
         connect,
         disconnect,
         updateAccount,
+        updateMachikadoAccount,
     }
 }
