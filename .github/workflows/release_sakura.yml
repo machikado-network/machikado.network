@@ -85,7 +85,7 @@ jobs:
   upload-artifacts:
     strategy:
       matrix:
-        target: [aarch64-unknown-linux-gnu, x86_64-unknown-linux-gnu, x86_64-apple-darwin, aarch64-apple-darwin]
+        target: [aarch64-unknown-linux-gnu, x86_64-unknown-linux-gnu, armv7-unknown-linux-gnueabihf]
     needs: [ build-sakura-cli, draft-release-sakura-cli ]
     runs-on: ubuntu-latest
     steps:
