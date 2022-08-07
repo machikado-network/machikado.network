@@ -14,6 +14,7 @@ const UpdateInetHost = () => {
         try {
             await updateInetHost(PUBLISHER, PUBLISHER, name, hostname, port)
         } catch (e) {
+            console.error(e)
             toast.error("設定更新に失敗しました。")
             return
         }

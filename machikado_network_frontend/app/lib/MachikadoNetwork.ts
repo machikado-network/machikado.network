@@ -76,7 +76,7 @@ export async function updateInetHost(publisher: Address, target: Address, name: 
     const payload: AptosPayload = {
         type: "script_function_payload",
         function: `${publisher}::MachikadoNetwork::update_node_inet_host`,
-        arguments: [target, toHex(name), toHex(hostname), port],
+        arguments: [target, toHex(name), toHex(hostname), port.toString()],
         type_arguments: [],
     }
     const tx = await window.aptos!.signAndSubmitTransaction(payload)
