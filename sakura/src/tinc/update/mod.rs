@@ -95,7 +95,8 @@ pub fn direct_update_nodes(no_restart: bool) {
                 "Checking".bright_cyan().bold(),
                 node.name
             );
-            let old_content = std::fs::read_to_string(format!("/etc/tinc/hosts/{}", node.name));
+            let old_content =
+                std::fs::read_to_string(format!("/etc/tinc/mchkd/hosts/{}", node.name));
             if old_content.is_ok() {
                 println!(
                     "{}: /etc/tinc/mchkd/hosts/{} is exists so comparing contents...",
