@@ -118,7 +118,7 @@ pub fn direct_update_nodes(no_restart: bool) {
         }
     }
     println!("End writing all nodes");
-    if !is_updated || !no_restart {
+    if !is_updated || no_restart {
         return;
     }
     println!("{} tinc", "Restarting".bright_cyan().bold());
