@@ -52,6 +52,7 @@ pub fn direct_update_nodes(no_restart: bool) {
         .expect("Failed to write to tinc.conf");
 
     for address in addresses {
+        sleep(Duration::from_secs(2));
         let key = aptos::machikado::AccountKey {
             owner: address.clone(),
         };
@@ -62,6 +63,7 @@ pub fn direct_update_nodes(no_restart: bool) {
             key,
         );
         for node in account.nodes {
+            sleep(Duration::from_secs(2));
             println!("{} {} Node", "Setup".bright_cyan().bold(), node.name);
             let mut content = format!(
                 "# {}\n# account: {}\n# address: {}\n\n",
