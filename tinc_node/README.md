@@ -37,6 +37,7 @@
 ```sh
 brew install virtualbox
 brew install vagrant
+vagrant plugin install vagrant-vyos
 ```
 
 システム環境設定 > セキュリティとプライバシー から"Oracle America, inc"のシステムソフトウェアを「許可」する

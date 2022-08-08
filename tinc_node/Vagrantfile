@@ -4,10 +4,13 @@
 Vagrant.configure("2") do |config|
   config.vm.provider "virtualbox" do |vb|
     vb.customize ['modifyvm', :id, '--natnet1', '192.168.4.0/24']
+    ## 1番目のEthernetアダプタを natnetwork に設定する
+    #vb.customize ['modifyvm', :id, '--nic1', 'natnetwork']
+    #vb.customize ['modifyvm', :id, '--nat-network1', 'fake_inet']
   end
 
   # boxes at https://vagrantcloud.com/search.
-  config.vm.box = "debian/buster64"
+  #config.vm.box = "debian/buster64"
   #config.vm.box = "debian/bullseye64"
 
   # ツール類のインストール
@@ -31,6 +34,7 @@ Vagrant.configure("2") do |config|
 
   # ルートノードの想定のVM
   config.vm.define "fakeroot" do |host|
+    host.vm.box = "debian/buster64"
     host.vm.hostname = "fakeroot"
     host.vm.network "private_network", ip: "172.16.38.1", netmask: "24", virtualbox__intnet: "fake_inet"  # インターネットのかわり
     host.vm.provision "file", source: "./setup_gateway.sh", destination: "/tmp/"
@@ -39,8 +43,22 @@ Vagrant.configure("2") do |config|
     host.vm.provision "shell", inline: provision_for_tinc_node % [host.vm.hostname, "10.50.255.1"]
   end
 
+  # ブロードバンドルーター
+  config.vm.define "bbrt" do |vyos|
+    vyos.vm.box = "vyos/current"
+    vyos.vm.hostname = "bbrt"
+    #vyos.vm.network "private_network", ip: "172.16.38.2", netmask: "24", virtualbox__intnet: "fake_inet"  # インターネットのかわり
+    #vyos.vm.network "private_network", ip: "192.168.111.1", netmask: "24", virtualbox__intnet: "fake_lan" # LANのかわり
+    # vagrant-vyosの実装がいいかげんで 255.255.255.0 の形式じゃないとサブネットマスクを受け付けてくれない
+    #   https://github.com/higebu/vagrant-vyos/blob/master/lib/vagrant-vyos/cap/configure_networks.rb#L22
+    #vyos.vm.network "private_network", ip: "172.16.38.2", netmask: "255.255.255.0", virtualbox__intnet: "fake_inet"  # インターネットのかわり
+    #vyos.vm.network "private_network", type: "dhcp", virtualbox__intnet: "fake_inet"  # インターネットのかわり
+    #vyos.vm.network "private_network", ip: "192.168.111.1", netmask: "255.255.255.0", virtualbox__intnet: "fake_lan" # LANのかわり
+  end
+
   # 各参加者のLANに設置されるまちかどネットワークゲートウェイの想定のVM
   config.vm.define "gateway" do |host|
+    host.vm.box = "debian/buster64"
     host.vm.hostname = "gateway"
     host.vm.network "private_network", ip: "172.16.38.2", netmask: "24", virtualbox__intnet: "fake_inet"  # インターネットのかわり
     host.vm.network "private_network", ip: "192.168.111.2", netmask: "24", virtualbox__intnet: "fake_lan" # LANのかわり
@@ -52,6 +70,7 @@ Vagrant.configure("2") do |config|
 
   # LAN側の端末の想定のVM
   config.vm.define "client" do |host|
+    host.vm.box = "debian/buster64"
     host.vm.hostname = "client"
     host.vm.network "private_network", ip: "192.168.111.3", netmask: "24", virtualbox__intnet: "fake_lan" # LANのかわり
     host.vm.provision "shell", inline: provision_for_tools
