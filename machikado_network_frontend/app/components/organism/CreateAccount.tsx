@@ -4,9 +4,11 @@ import Input from "~/components/atom/input";
 import {createMachikadoAccount} from "~/lib/MachikadoNetwork";
 import {PUBLISHER} from "~/lib/preferences";
 import {toast} from "react-toastify";
+import {useAptos} from "~/hooks/aptos";
 
 const CreateAccount = () => {
     const [name, setName] = useState("")
+    const aptos = useAptos()
 
     const createAccount = async () => {
         try {
@@ -16,6 +18,7 @@ const CreateAccount = () => {
             toast.error("アカウント作成に失敗しました")
             return
         }
+        await aptos.updateMachikadoAccount()
         toast.success("アカウント作成しました！")
     }
     return <div className="w-full p-3 bg-gray-200 rounded-md my-4">

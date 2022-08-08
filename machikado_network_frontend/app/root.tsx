@@ -31,7 +31,9 @@ export default function App() {
     const [state, dispatch] = useReducer(aptosReducer, {
         isConnected: false,
         account: null,
+        machikadoAccount: null,
     })
+
     return (
         <html lang="en">
         <head>

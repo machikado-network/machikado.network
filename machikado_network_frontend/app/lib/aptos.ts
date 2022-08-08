@@ -64,7 +64,7 @@ export async function uploadModules(hex: string[]) {
 
 export async function accountResource(address: string, resourceType: string): Promise<any> {
     const response = await fetch(
-        `${TESTNET_URL}/accounts/${address}/resource/${resourceType}`
+        `${TESTNET_URL}/accounts/${address}/resource/${resourceType}`,
     )
     if (response.status > 399) {
         return null
@@ -88,5 +88,8 @@ export async function tableItems<T>(handle: string, keyType: string, valueType: 
             ]
         }
     )
+    if (response.status > 399) {
+        return null
+    }
     return await response.json<T>()
 }

@@ -10,7 +10,7 @@ pub struct TincNode {
     pub name: String,
     pub public_key: String,
     pub inet_hostname: AptosOption<String>,
-    pub inet_port: AptosOption<u64>,
+    pub inet_port: AptosOption<String>,
 }
 
 #[derive(Deserialize)]

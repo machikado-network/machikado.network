@@ -203,7 +203,7 @@ fn create_tinc_conf(name: String) {
     let content = format!(
         "Name = {name}\n\
         Mode = switch\n\
-        Device = /dev/net/tun"
+        Device = /dev/net/tun\n"
     );
     println!("{}", content);
     file.write_all(content.as_bytes()).unwrap();
