@@ -10,20 +10,23 @@ Vagrant.configure("2") do |config|
   config.vm.box = "debian/buster64"
   #config.vm.box = "debian/bullseye64"
 
-  shell_provision = <<-SHELL
-      # このスクリプト内でエラーがでたときは終了する
-      set -e
+  # ツール類のインストール
+  provision_for_tools = <<-SHELL
+    set -e
+    apt-get install -y screen socat tcpdump vim
+    sudo -u vagrant sh -c 'wget -q -O - https://gist.githubusercontent.com/miminashi/1d7890a1a5e8d5b18e0c1a9c5e4fff2e/raw | sh -s'
+  SHELL
 
-      # スクリプトを配置する
-      chmod +x /tmp/bin/*
-      cp /tmp/bin/* /usr/local/sbin
-      chmod +x /tmp/setup_gateway.sh
-      # ノードのセットアップをする
-      /tmp/setup_gateway.sh %s %s
-
-      # デバッグ用
-      apt-get install -y screen socat tcpdump vim
-      sudo -u vagrant sh -c 'wget -q -O - https://gist.githubusercontent.com/miminashi/1d7890a1a5e8d5b18e0c1a9c5e4fff2e/raw | sh -s'
+  # tincノードのセットアップ
+  provision_for_tinc_node = <<-SHELL
+    # このスクリプト内でエラーがでたときは終了する
+    set -e
+    # スクリプトを配置する
+    chmod +x /tmp/bin/*
+    cp /tmp/bin/* /usr/local/sbin
+    chmod +x /tmp/setup_gateway.sh
+    # ノードのセットアップをする
+    /tmp/setup_gateway.sh %s %s
   SHELL
 
   # ルートノードの想定のVM
@@ -32,7 +35,8 @@ Vagrant.configure("2") do |config|
     host.vm.network "private_network", ip: "172.16.38.1", netmask: "24", virtualbox__intnet: "fake_inet"  # インターネットのかわり
     host.vm.provision "file", source: "./setup_gateway.sh", destination: "/tmp/"
     host.vm.provision "file", source: "./bin", destination: "/tmp/"
-    host.vm.provision "shell", inline: shell_provision % [host.vm.hostname, "10.50.255.1"]
+    host.vm.provision "shell", inline: provision_for_tools
+    host.vm.provision "shell", inline: provision_for_tinc_node % [host.vm.hostname, "10.50.255.1"]
   end
 
   # 各参加者のLANに設置されるまちかどネットワークゲートウェイの想定のVM
@@ -42,13 +46,15 @@ Vagrant.configure("2") do |config|
     host.vm.network "private_network", ip: "192.168.111.2", netmask: "24", virtualbox__intnet: "fake_lan" # LANのかわり
     host.vm.provision "file", source: "./setup_gateway.sh", destination: "/tmp/"
     host.vm.provision "file", source: "./bin", destination: "/tmp/"
-    host.vm.provision "shell", inline: shell_provision % [host.vm.hostname, "10.50.255.2"]
+    host.vm.provision "shell", inline: provision_for_tools
+    host.vm.provision "shell", inline: provision_for_tinc_node % [host.vm.hostname, "10.50.255.2"]
   end
 
   # LAN側の端末の想定のVM
   config.vm.define "client" do |host|
     host.vm.hostname = "client"
     host.vm.network "private_network", ip: "192.168.111.3", netmask: "24", virtualbox__intnet: "fake_lan" # LANのかわり
+    host.vm.provision "shell", inline: provision_for_tools
     host.vm.provision "shell", inline: <<-SHELL
       # まちかどネットワークへの経路を追加する
       ip route add 10.50.0.0/16 via 192.168.111.2
