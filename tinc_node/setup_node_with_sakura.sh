@@ -15,8 +15,6 @@ set -e
 
 sakura_base_url="https://github.com/sizumita/machikado.network/releases/download/Sakura-v0.3.0/Sakura-v0.3.0"
 
-tmp="$(mktemp)"
-
 unames="$(uname -s)"
 if [ "${unames}" != "Linux" ]; then
   {
@@ -32,7 +30,7 @@ case "${unamem}" in
     target="aarch64-unknown-linux-gnu"
     ;;
   "armv7l" )
-    targwet="armv7-unknown-linux-gnueabihf"
+    target="armv7-unknown-linux-gnueabihf"
     ;;
   "x86_64" )
     target="x86_64-unknown-linux-gnu"
