@@ -28,7 +28,7 @@ fi
 
 # 設定が既に存在していたらセットアップを中止
 if test -d /etc/tinc/"${tinc_netname}"; then
-  printf 'エラー: /etc/tinc/"${tinc_netname}" は既に存在します\n' >&2
+  printf 'エラー: /etc/tinc/'"${tinc_netname}"' は既に存在します\n' >&2
   printf 'セットアップを中止します\n' >&2
   printf 'セットアップをやりなおす場合は sudo rm -rf /etc/tinc/"${tinc_netname}" してから再度セットアップスクリプトを実行してください\n' >&2
   exit 1
