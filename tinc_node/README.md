@@ -70,3 +70,36 @@ local:~$ vagrant halt gateway
 ```
 
 `10.50.255.1` へのpingが停止すれば`gateway`経由で`10.50.255.1`と通信できていることが確認できる。
+
+
+## Dockerで動かす(実験中)
+
+ビルド&起動:
+```
+docker compose build && docker compose down && docker compose up -d && ./exchange_key_in_docker.sh
+```
+
+fakerootコンテナの中で作業するには:
+```sh
+docker exec -it tinc_node-fakeroot-1 /bin/bash -login
+```
+
+gatewayコンテナの中で作業するには:
+```sh
+docker exec -it tinc_node-gateway-1 /bin/bash -login
+```
+
+fakerootコンテナのtincログを見るには:
+```sh
+docker exec -it tinc_node-fakeroot-1 journalctl -n 100 -f -u tinc@mchkd.service
+```
+
+gatewayコンテナのtincログを見るには:
+```sh
+docker exec -it tinc_node-gateway-1 journalctl -n 100 -f -u tinc@mchkd.service
+```
+
+終了するには:
+```sh
+docker compose down
+```
