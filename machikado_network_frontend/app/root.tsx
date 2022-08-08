@@ -33,6 +33,7 @@ export default function App() {
         account: null,
         machikadoAccount: null,
     })
+
     return (
         <html lang="en">
         <head>

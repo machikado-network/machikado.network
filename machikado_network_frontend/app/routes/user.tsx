@@ -6,9 +6,38 @@ import CreateTincNode from "~/components/organism/CreateTincNode";
 import UpdateInetHost from "~/components/organism/UpdateInetHost";
 import CreateSubnet from "~/components/organism/CreateSubnet";
 import AccountInfo from "~/components/organism/AccountInfo";
+import {useContext, useEffect} from "react";
+import {AptosActionType} from "~/lib/contexts/AptosContextAction";
+import {getMachikadoAccount} from "~/lib/MachikadoNetwork";
+import {AptosContext} from "~/lib/contexts/AptosContext";
 
 const User = () => {
     const aptos = useAptos()
+    const {dispatch} = useContext(AptosContext)
+
+    useEffect(() => {
+        if (typeof window.aptos === "undefined") {
+            return
+        }
+        (async () => {
+            dispatch({
+                type: AptosActionType.UpdateIsConnected,
+                value: await window.aptos?.isConnected() ?? false
+            })
+            if (await window.aptos?.isConnected()) {
+                const account = await window.aptos!.account()
+                dispatch({
+                    type: AptosActionType.UpdateAccount,
+                    account: account
+                })
+                const machikadoAccount = await getMachikadoAccount(PUBLISHER, PUBLISHER, (await window.aptos!.account()).address)
+                dispatch({
+                    type: AptosActionType.UpdateMachikadoAccount,
+                    account: machikadoAccount,
+                })
+            }
+        })()
+    }, [])
 
     return <AptosLoginWrapper noNav>
         <div className="mx-auto p-3 container min-h-screen">

@@ -31,6 +31,7 @@ export default {
 			return await fetch(`${TESTNET_URL}${url.pathname}`, {
 				headers: request.headers,
 				method: request.method,
+				body: request.body,
 			})
 		}
 
@@ -45,6 +46,7 @@ export default {
 			})
 			response = new Response(response!.body);
 			response!.headers.append('Cache-Control', 'maxage=60, must-revalidate');
+			response!.headers.append("Access-Control-Allow-Origin", "*")
 			ctx.waitUntil(cache.put(request.url, response!.clone()));
 		} else {
 			console.log("cached!")

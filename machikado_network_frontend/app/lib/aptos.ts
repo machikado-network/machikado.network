@@ -69,7 +69,6 @@ export async function accountResource(address: string, resourceType: string): Pr
     if (response.status > 399) {
         return null
     }
-    console.log(response.headers)
     return await response.json()
 }
 

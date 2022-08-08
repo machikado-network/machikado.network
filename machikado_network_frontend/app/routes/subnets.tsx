@@ -24,7 +24,7 @@ const Nodes = () => {
     }, [])
 
     return <div className={"mx-auto container py-4 md:py-12"}>
-        <h1 className="text-xl md:text-3xl font-bold my-2">まちカドネットワーク Node一覧</h1>
+        <h1 className="text-xl md:text-3xl font-bold my-2">まちカドネットワーク Subnet一覧</h1>
         <table className={"table-auto"}>
             <thead>
             <tr>

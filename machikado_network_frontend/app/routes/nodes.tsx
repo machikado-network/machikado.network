@@ -40,16 +40,14 @@ const Nodes = () => {
             </thead>
             <tbody>
             {accounts.map((account, i) =>
-                <>
-                    {account.nodes.map(
-                        (node, i2) => <tr key={`${i}-${i2}`}>
-                            <td className="border px-4 py-2">{account.name}</td>
-                            <td className="border px-4 py-2">{node.name}</td>
-                            <td className="border px-4 py-2">{node.public_key.substring(0, 30)}...</td>
-                            <td className="border px-4 py-2">{getOption(node.inet_hostname) ?? "なし"}</td>
-                            <td className="border px-4 py-2">{getOption(node.inet_port) ?? "なし"}</td>
-                        </tr>)}
-                </>
+                account.nodes.map(
+                    (node, i2) => <tr key={`${i}-${i2}`}>
+                        <td className="border px-4 py-2">{account.name}</td>
+                        <td className="border px-4 py-2">{node.name}</td>
+                        <td className="border px-4 py-2">{node.public_key.substring(0, 30)}...</td>
+                        <td className="border px-4 py-2">{getOption(node.inet_hostname) ?? "なし"}</td>
+                        <td className="border px-4 py-2">{getOption(node.inet_port) ?? "なし"}</td>
+                    </tr>)
             )}
             </tbody>
         </table>
