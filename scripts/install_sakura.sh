@@ -5,7 +5,9 @@ INSTALL_PATH="${1:-.}"
 function install() {
   URL="$(echo "${1}" | grep "${2}")"
   echo "Download Sakura from ${URL}"
-  rm -f "${INSTALL_PATH}/sakura"
+  if [ -f "${INSTALL_PATH}/sakura" ]; then
+    echo "${INSTALL_PATH}/sakura is exist. you have to remove it."
+  fi
   if hash curl 2>/dev/null; then
     curl -L -s "${URL}" > "${INSTALL_PATH}/sakura"
   else
@@ -23,7 +25,7 @@ if hash jq 2>/dev/null; then
 
   case "${OS}-${ARCH}" in
     "Linux-arm64" ) install "${URLS}" aarch64-unknown-linux-gnu ;;
-    "Linux-X86_64" ) install "${URLS}" x86_64-unknown-linux-gnu ;;
+    "Linux-x86_64" ) install "${URLS}" x86_64-unknown-linux-gnu ;;
     "Linux-armv7l" ) install "${URLS}" armv7-unknown-linux-gnueabihf ;;
   esac
 
