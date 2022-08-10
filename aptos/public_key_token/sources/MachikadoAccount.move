@@ -10,6 +10,8 @@ module MachikadoNetwork::MachikadoAccount {
     use std::string;
     #[test_only]
     use std::string::{utf8};
+    use MachikadoNetwork::Invite::Invite;
+    use MachikadoNetwork::Invite;
 
     const ENO_MESSAGE: u64 = 0;
 
@@ -18,11 +20,14 @@ module MachikadoNetwork::MachikadoAccount {
     const ENAME_ALREADY_EXISTS: u64 = 102;
     const ENODE_NAME_ALREADY_EXISTS: u64 = 103;
     const ESUBNET_ID_ALREADY_EXISTS: u64 = 104;
+    const EINVITEE_ACCOUNT_ALREADY_EXISTES: u64 = 105;
+    const EINVITE_ALREADY_EXISTES: u64 = 106;
 
     const EACCOUNT_STORE_NOT_FOUND: u64 = 200;
     const EACCOUNT_NOT_FOUND: u64 = 201;
     const ENODE_NOT_FOUND: u64 = 202;
     const ESUBNET_NOT_FOUND: u64 = 203;
+    const EINVITE_NOT_FOUND: u64 = 204;
 
     const EINVALID_NAME_CHARACTOR: u64 = 300;
     const EINVALID_ACCOUNT_NAME_LENGTH: u64 = 301;
@@ -30,6 +35,8 @@ module MachikadoNetwork::MachikadoAccount {
     const EINVALID_PORT_RANGE: u64 = 303;
     const EINVALID_USER: u64 = 303;
     const EINVALID_SUBNET_RANGE: u64 = 304;
+
+    const ENO_REMAIN_INVITE_COUNT: u64 = 400;
 
     struct TincNode has store, copy, drop {
         // tinc host name e.g. syamimomo
@@ -49,10 +56,15 @@ module MachikadoNetwork::MachikadoAccount {
         owner: address,
     }
 
+    struct InviteKey has key, copy, drop {
+        invitee: address,
+    }
+
     struct Account has store {
         name: String,
         nodes: vector<TincNode>,
         subnets: vector<Subnet>,
+        remain_invite_count: u64,
 
         // e.g. discord account name
         additional_fields: Table<String, String>,
@@ -65,6 +77,7 @@ module MachikadoNetwork::MachikadoAccount {
     struct AccountStore has key {
         accounts: Table<AccountKey, Account>,
         addresses: vector<address>,
+        invites: Table<InviteKey, Invite>,
     }
 
     struct FindResult<T> has store, copy, drop {
@@ -85,6 +98,7 @@ module MachikadoNetwork::MachikadoAccount {
             AccountStore {
                 accounts: table::new<AccountKey, Account>(),
                 addresses: vector::empty<address>(),
+                invites: table::new<InviteKey, Invite>()
             }
         );
     }
@@ -105,10 +119,16 @@ module MachikadoNetwork::MachikadoAccount {
         let store = borrow_global_mut<AccountStore>(target);
         let accounts = &mut store.accounts;
         let addresses = &mut store.addresses;
+        let invites = &mut store.invites;
 
         // Check Duplicate
         assert!(option::is_none(&find_account_key_by_name(accounts, addresses, name)), ENAME_ALREADY_EXISTS);
         assert!(!table::contains(accounts, AccountKey {owner: creator_addr}), ENAME_ALREADY_EXISTS);
+
+        if (creator_addr != target) {
+            // Check Invite
+            assert!(table::contains(invites, InviteKey {invitee: creator_addr}), error::not_found(EINVITE_NOT_FOUND));
+        };
 
         table::add(
             accounts,
@@ -118,6 +138,8 @@ module MachikadoNetwork::MachikadoAccount {
                 nodes: vector::empty<TincNode>(),
                 subnets: vector::empty<Subnet>(),
                 additional_fields: table::new<String, String>(),
+                // Each resident can invite 3 humans.
+                remain_invite_count: 3,
             }
         );
         vector::push_back(addresses, creator_addr);
@@ -332,6 +354,53 @@ module MachikadoNetwork::MachikadoAccount {
         vector::remove(subnets, nth);
     }
 
+    public fun direct_create_invite(
+        creator: &signer,
+        target: address,
+        invitee: address,
+    ) acquires AccountStore {
+        let creator_addr = signer::address_of(creator);
+        let is_admin = creator_addr == target;
+
+        assert!(exists<AccountStore>(target), error::not_found(EACCOUNT_STORE_NOT_FOUND));
+
+        let store = borrow_global_mut<AccountStore>(target);
+        let accounts = &mut store.accounts;
+        let invites = &mut store.invites;
+
+        // Check invitee has account
+        assert!(!table::contains(accounts, AccountKey {owner: invitee}), error::already_exists(EINVITEE_ACCOUNT_ALREADY_EXISTES));
+
+        // Check invitee has invite
+        assert!(!table::contains(invites, InviteKey {invitee}), error::already_exists(EINVITE_ALREADY_EXISTES));
+
+        if (is_admin) {
+            table::add(
+                invites,
+                InviteKey {invitee},
+                Invite::new(creator_addr),
+            );
+            return
+        };
+
+        // Check user has account
+        assert!(table::contains(accounts, AccountKey {owner: creator_addr}), error::not_found(EACCOUNT_NOT_FOUND));
+
+        let account = table::borrow_mut(accounts, AccountKey {owner: creator_addr});
+        let remain_invite_count = &mut account.remain_invite_count;
+
+        // check invite count
+        assert!(*remain_invite_count > 0, ENO_REMAIN_INVITE_COUNT);
+
+        *remain_invite_count = *remain_invite_count - 1;
+
+        table::add(
+            invites,
+            InviteKey {invitee},
+            Invite::new(creator_addr),
+        );
+    }
+
     fun find_account_key_by_name(accounts: &Table<AccountKey, Account>, addresses: &vector<address>, name: String): Option<AccountKey> {
         let i = 0u64;
         while (i < vector::length(addresses)) {
@@ -424,6 +493,8 @@ module MachikadoNetwork::MachikadoAccount {
     #[test(account = @0x42, target = @0x1)]
     public entry fun test_create_account(account: signer, target: signer) acquires AccountStore {
         direct_create_account_store(&target);
+        // Create invite from target to account
+        direct_create_invite(&target, addr(&target), addr(&account));
 
         direct_create_account(
             &account,
@@ -442,6 +513,8 @@ module MachikadoNetwork::MachikadoAccount {
     #[test(account = @0x42, target = @0x1)]
     public entry fun test_update_account_name(account: signer, target: signer) acquires AccountStore {
         direct_create_account_store(&target);
+        // Create invite from target to account
+        direct_create_invite(&target, addr(&target), addr(&account));
 
         direct_create_account(
             &account,
@@ -464,6 +537,8 @@ module MachikadoNetwork::MachikadoAccount {
     #[test(account = @0x42, target = @0x1)]
     public entry fun test_create_node(account: signer, target: signer) acquires AccountStore {
         direct_create_account_store(&target);
+        // Create invite from target to account
+        direct_create_invite(&target, addr(&target), addr(&account));
 
         direct_create_account(
             &account,
@@ -496,6 +571,8 @@ module MachikadoNetwork::MachikadoAccount {
     #[test(account = @0x42, target = @0x1)]
     public entry fun test_update_node_public_key(account: signer, target: signer) acquires AccountStore {
         direct_create_account_store(&target);
+        // Create invite from target to account
+        direct_create_invite(&target, addr(&target), addr(&account));
 
         direct_create_account(
             &account,
@@ -532,6 +609,8 @@ module MachikadoNetwork::MachikadoAccount {
     #[test(account = @0x42, target = @0x1)]
     public entry fun test_update_node_inet_host(account: signer, target: signer) acquires AccountStore {
         direct_create_account_store(&target);
+        // Create invite from target to account
+        direct_create_invite(&target, addr(&target), addr(&account));
 
         direct_create_account(
             &account,
@@ -570,6 +649,8 @@ module MachikadoNetwork::MachikadoAccount {
     #[test(account = @0x42, target = @0x1)]
     public entry fun test_delete_node(account: signer, target: signer) acquires AccountStore {
         direct_create_account_store(&target);
+        // Create invite from target to account
+        direct_create_invite(&target, addr(&target), addr(&account));
 
         direct_create_account(
             &account,
@@ -604,6 +685,8 @@ module MachikadoNetwork::MachikadoAccount {
     public entry fun test_delete_node_by_admin(account: signer, target: signer) acquires AccountStore {
         // Delete another user's node by the account store owner
         direct_create_account_store(&target);
+        // Create invite from target to account
+        direct_create_invite(&target, addr(&target), addr(&account));
 
         direct_create_account(
             &account,
@@ -638,6 +721,8 @@ module MachikadoNetwork::MachikadoAccount {
     #[test(account = @0x42, target = @0x1)]
     public entry fun test_create_subnet(account: signer, target: signer) acquires AccountStore {
         direct_create_account_store(&target);
+        // Create invite from target to account
+        direct_create_invite(&target, addr(&target), addr(&account));
 
         direct_create_account(
             &account,
@@ -664,6 +749,8 @@ module MachikadoNetwork::MachikadoAccount {
     #[test(account = @0x42, target = @0x1)]
     public entry fun test_delete_subnet(account: signer, target: signer) acquires AccountStore {
         direct_create_account_store(&target);
+        // Create invite from target to account
+        direct_create_invite(&target, addr(&target), addr(&account));
 
         direct_create_account(
             &account,
@@ -694,6 +781,8 @@ module MachikadoNetwork::MachikadoAccount {
     public entry fun test_delete_subnet_root(account: signer, target: signer) acquires AccountStore {
         // Delete another user's subnet by the account store owner
         direct_create_account_store(&target);
+        // Create invite from target to account
+        direct_create_invite(&target, addr(&target), addr(&account));
 
         direct_create_account(
             &account,
@@ -719,5 +808,36 @@ module MachikadoNetwork::MachikadoAccount {
         let acc = table::borrow(accounts, AccountKey {owner: signer::address_of(&account)});
 
         assert!(vector::length(&acc.subnets) == 0, ENO_MESSAGE);
+    }
+
+    #[test(account = @0x42, target = @0x1, another = @0xCAFE)]
+    public entry fun test_create_invite(account: signer, target: signer, another: signer) acquires AccountStore {
+        direct_create_account_store(&target);
+
+        // Create invite from target to account
+        direct_create_invite(&target, addr(&target), addr(&account));
+
+        let store = borrow_global<AccountStore>(signer::address_of(&target));
+        let invites = &store.invites;
+
+        assert!(table::contains(invites, InviteKey {invitee: addr(&account)}), ENO_MESSAGE);
+
+        direct_create_account(
+            &account,
+            addr(&target),
+            utf8(b"syamimomo")
+        );
+
+        direct_create_invite(&account, addr(&target), addr(&another));
+
+        let store = borrow_global<AccountStore>(signer::address_of(&target));
+        let invites = &store.invites;
+        let accounts = &store.accounts;
+
+        assert!(table::contains(invites, InviteKey {invitee: addr(&another)}), ENO_MESSAGE);
+
+        // Check decrement remain invite count
+        let account = table::borrow(accounts, AccountKey {owner: addr(&account)});
+        assert!(account.remain_invite_count == 2, ENO_MESSAGE);
     }
 }
