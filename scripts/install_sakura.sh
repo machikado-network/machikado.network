@@ -1,3 +1,4 @@
+#!/bin/sh
 RELEASES_API="https://api.github.com/repos/machikado-network/sakura/releases/latest"
 INSTALL_PATH="${1:-.}"
 
