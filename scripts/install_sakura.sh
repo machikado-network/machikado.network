@@ -25,6 +25,7 @@ if hash jq 2>/dev/null; then
 
   case "${OS}-${ARCH}" in
     "Linux-arm64" ) install "${URLS}" aarch64-unknown-linux-gnu ;;
+    "Linux-aarch64" ) install "${URLS}" aarch64-unknown-linux-gnu ;;
     "Linux-x86_64" ) install "${URLS}" x86_64-unknown-linux-gnu ;;
     "Linux-armv7l" ) install "${URLS}" armv7-unknown-linux-gnueabihf ;;
   esac
