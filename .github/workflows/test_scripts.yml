@@ -1,0 +1,50 @@
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'scripts/**'
+      - '.github/workflows/test_scripts.yml'
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'scripts/**'
+      - '.github/workflows/test_scripts.yml'
+
+jobs:
+  test_install_sakura:
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [armv7, aarch64, amd64]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: uraimo/run-on-arch-action@v2
+        name: Run Test
+        if: matrix.target != 'amd64'
+        with:
+          arch: ${{ matrix.target }}
+          distro: ubuntu22.04
+
+          # Not required, but speeds up builds by storing container images in
+          # a GitHub package registry.
+          githubToken: ${{ github.token }}
+
+          install: |
+            apt-get update -q -y
+            apt-get install jq curl -y
+
+          # Set an output parameter `uname` for use in subsequent steps
+          run: |
+            echo "=== OS and Architecture ==="
+            echo "$(uname -s), $(uname -m)"
+            echo ""
+            echo "Start install sakura"
+            bash scripts/install_sakura.sh
+
+      - name: Run Test amd64
+        if: matrix.target == 'amd64'
+        run: bash scripts/install_sakura.sh
