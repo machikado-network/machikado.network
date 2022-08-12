@@ -10,6 +10,7 @@ import {useContext, useEffect} from "react";
 import {AptosActionType} from "~/lib/contexts/AptosContextAction";
 import {getMachikadoAccount} from "~/lib/MachikadoNetwork";
 import {AptosContext} from "~/lib/contexts/AptosContext";
+import CreateInvite from "~/components/organism/CreateInvite";
 
 const User = () => {
     const aptos = useAptos()
@@ -67,8 +68,14 @@ const User = () => {
                 </div>
             </div>
             <div className="my-4">
-                <AccountInfo />
-                {aptos.machikadoAccount == null
+                {aptos.machikadoAccount !== null
+                    ? <>
+                        <AccountInfo />
+                        <CreateInvite />
+                    </>
+                    : null
+                }
+                {aptos.machikadoAccount === null
                     ? <CreateAccount />
                     : null
                 }

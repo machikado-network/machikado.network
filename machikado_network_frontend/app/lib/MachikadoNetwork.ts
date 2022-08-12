@@ -104,6 +104,13 @@ export async function getMachikadoAccount(publisher: Address, target: Address, m
     return await tableItems<MachikadoAccount>(store, `${PUBLISHER}::MachikadoAccount::AccountKey`, `${PUBLISHER}::MachikadoAccount::Account`, id);
 }
 
-export async function createInvite(publisher: Address, target: Address) {
-    
+export async function createInvite(publisher: Address, target: Address, invitee: Address) {
+    const payload: AptosPayload = {
+        type: "script_function_payload",
+        function: `${publisher}::MachikadoNetwork::create_invite`,
+        arguments: [target, invitee],
+        type_arguments: [],
+    }
+    const tx = await window.aptos!.signAndSubmitTransaction(payload)
+    return await waitForTransaction(tx)
 }
