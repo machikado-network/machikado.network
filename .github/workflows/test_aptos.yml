@@ -1,0 +1,41 @@
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'aptos/**'
+      - '.github/workflows/test_aptos.yml'
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'aptos/**'
+      - '.github/workflows/test_aptos.yml'
+
+jobs:
+  aptos_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-aptos-cli
+
+      - name: Download Aptos CLI
+        run: |
+          if which aptos >/dev/null 2>&1; then
+            echo "Aptos is installed. Skipping"
+          else
+            cargo install --git https://github.com/aptos-labs/aptos-core.git aptos --branch devnet
+          fi
+
+      - name: Test aptos
+        working-directory: aptos
+        run: |
+          make test

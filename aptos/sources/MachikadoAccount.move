@@ -401,6 +401,8 @@ module MachikadoNetwork::MachikadoAccount {
         );
     }
 
+    // ------ Util Functions ------
+
     fun find_account_key_by_name(accounts: &Table<AccountKey, Account>, addresses: &vector<address>, name: String): Option<AccountKey> {
         let i = 0u64;
         while (i < vector::length(addresses)) {

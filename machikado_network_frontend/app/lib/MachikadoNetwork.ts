@@ -103,3 +103,7 @@ export async function getMachikadoAccount(publisher: Address, target: Address, m
     }
     return await tableItems<MachikadoAccount>(store, `${PUBLISHER}::MachikadoAccount::AccountKey`, `${PUBLISHER}::MachikadoAccount::Account`, id);
 }
+
+export async function createInvite(publisher: Address, target: Address) {
+    
+}
