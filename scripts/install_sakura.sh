@@ -1,6 +1,7 @@
 #!/bin/sh
 RELEASES_API="https://api.github.com/repos/machikado-network/sakura/releases/latest"
-INSTALL_PATH="${1:-.}"
+INSTALL_PATH="${1:-$INSTALL_PATH}"
+INSTALL_PATH="${INSTALL_PATH:-.}"
 
 function install() {
   URL="$(echo "${1}" | grep "${2}")"
@@ -8,12 +9,15 @@ function install() {
   if [ -f "${INSTALL_PATH}/sakura" ]; then
     echo "${INSTALL_PATH}/sakura is exist. you have to remove it."
   fi
+  echo "Install sakura to ${INSTALL_PATH}/sakura"
+
   if hash curl 2>/dev/null; then
     curl -L -s "${URL}" > "${INSTALL_PATH}/sakura"
   else
     wget -q -r "${URL}" -o "${INSTALL_PATH}/sakura"
   fi
   chmod +x "${INSTALL_PATH}/sakura"
+  echo "Installed"
   exit 0
 }
 
