@@ -1,7 +1,7 @@
 export type Argument = string | number
 
 export interface ScriptFunctionPayload {
-    type: "script_function_payload",
+    type: "entry_function_payload",
     function: string,
     type_arguments: string[],
     arguments: Argument[]

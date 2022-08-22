@@ -25,6 +25,7 @@ const AptosAdmin = () => {
         try {
             const response = await createAccountStore(publisher)
         } catch (e) {
+            console.log(e)
             toast.error("作成失敗😭")
             return
         }

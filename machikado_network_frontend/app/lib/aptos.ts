@@ -28,14 +28,14 @@ export interface Account {
 }
 
 
-const TESTNET_URL = "https://fullnode.devnet.aptoslabs.com"
+const TESTNET_URL = "https://fullnode.devnet.aptoslabs.com/v1"
 
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 
 async function isTransactionPending(hash: string): Promise<boolean> {
-    const response = await fetch(`${TESTNET_URL}/transactions/${hash}`)
+    const response = await fetch(`${TESTNET_URL}/transactions/by_hash/${hash}`)
     if (response.status === 404) return true
     return (await response.json<Transaction>()).type === "pending_transaction"
 }
@@ -47,7 +47,7 @@ export async function waitForTransaction(tx: Transaction) {
         retry++
         await sleep(1000 * retry)
     }
-    const response = await fetch(`${TESTNET_URL}/transactions/${hash}`)
+    const response = await fetch(`${TESTNET_URL}/transactions/by_hash/${hash}`)
     const json = await response.json<any>()
     assert(response.status === 200 && typeof json.success !== "undefined")
     return json

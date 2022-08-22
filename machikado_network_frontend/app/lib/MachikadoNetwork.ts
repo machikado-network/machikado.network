@@ -28,11 +28,12 @@ export interface MachikadoAccount {
 
 export async function createAccountStore(publisher: Address) {
     const payload: AptosPayload = {
-        type: "script_function_payload",
+        type: "entry_function_payload",
         function: `${publisher}::MachikadoNetwork::create_account_store`,
         arguments: [],
         type_arguments: [],
     }
+    console.log(payload)
     const tx = await window.aptos!.signAndSubmitTransaction(payload)
     return await waitForTransaction(tx)
 }
@@ -41,7 +42,7 @@ const toHex = (s: string) => Array.from(new TextEncoder().encode(s)).map(x => x.
 
 export async function createMachikadoAccount(publisher: Address, target: Address, name: string) {
     const payload: AptosPayload = {
-        type: "script_function_payload",
+        type: "entry_function_payload",
         function: `${publisher}::MachikadoNetwork::create_account`,
         arguments: [target, toHex(name)],
         type_arguments: [],
@@ -53,7 +54,7 @@ export async function createMachikadoAccount(publisher: Address, target: Address
 
 export async function updateMachikadoAccountName(publisher: Address, target: Address, name: string) {
     const payload: AptosPayload = {
-        type: "script_function_payload",
+        type: "entry_function_payload",
         function: `${publisher}::MachikadoNetwork::update_account_name`,
         arguments: [target, toHex(name)],
         type_arguments: [],
@@ -64,7 +65,7 @@ export async function updateMachikadoAccountName(publisher: Address, target: Add
 
 export async function createTincNode(publisher: Address, target: Address, name: string, publicKey: string) {
     const payload: AptosPayload = {
-        type: "script_function_payload",
+        type: "entry_function_payload",
         function: `${publisher}::MachikadoNetwork::create_node`,
         arguments: [target, toHex(name), toHex(publicKey)],
         type_arguments: [],
@@ -75,7 +76,7 @@ export async function createTincNode(publisher: Address, target: Address, name: 
 
 export async function updateInetHost(publisher: Address, target: Address, name: string, hostname: string, port: number) {
     const payload: AptosPayload = {
-        type: "script_function_payload",
+        type: "entry_function_payload",
         function: `${publisher}::MachikadoNetwork::update_node_inet_host`,
         arguments: [target, toHex(name), toHex(hostname), port.toString()],
         type_arguments: [],
@@ -86,7 +87,7 @@ export async function updateInetHost(publisher: Address, target: Address, name: 
 
 export async function createSubnet(publisher: Address, target: Address, id: number) {
     const payload: AptosPayload = {
-        type: "script_function_payload",
+        type: "entry_function_payload",
         function: `${publisher}::MachikadoNetwork::create_subnet`,
         arguments: [target, id],
         type_arguments: [],
@@ -106,7 +107,7 @@ export async function getMachikadoAccount(publisher: Address, target: Address, m
 
 export async function createInvite(publisher: Address, target: Address, invitee: Address) {
     const payload: AptosPayload = {
-        type: "script_function_payload",
+        type: "entry_function_payload",
         function: `${publisher}::MachikadoNetwork::create_invite`,
         arguments: [target, invitee],
         type_arguments: [],
