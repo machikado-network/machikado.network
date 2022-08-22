@@ -37,6 +37,7 @@ module MachikadoNetwork::MachikadoAccount {
     const EINVALID_SUBNET_RANGE: u64 = 304;
 
     const ENO_REMAIN_INVITE_COUNT: u64 = 400;
+    const ENO_REMAIN_SUBNET_COUNT: u64 = 401;
 
     struct TincNode has store, copy, drop {
         // tinc host name e.g. syamimomo
@@ -302,6 +303,7 @@ module MachikadoNetwork::MachikadoAccount {
         id: u8,
     ) acquires AccountStore {
         let creator_addr = signer::address_of(creator);
+        let is_admin = creator_addr == target;
 
         // Validate Argument
         // subnet is 0 < id <= 255
@@ -321,6 +323,10 @@ module MachikadoNetwork::MachikadoAccount {
 
         let account = table::borrow_mut(accounts, AccountKey {owner: creator_addr});
         let subnets = &mut account.subnets;
+
+        // Chech subnet count
+        assert!(!(!is_admin && vector::length(subnets) >= 1), error::permission_denied(ENO_REMAIN_SUBNET_COUNT));
+
         vector::push_back(subnets, Subnet {id});
     }
 
@@ -746,6 +752,41 @@ module MachikadoNetwork::MachikadoAccount {
 
         let subnet = vector::borrow(&acc.subnets, 0);
         assert!(subnet.id == 12, ENO_MESSAGE);
+    }
+
+    #[test(account = @0x42, target = @0x1)]
+    public entry fun test_create_subnet_root(target: signer) acquires AccountStore {
+        direct_create_account_store(&target);
+        // Create invite from target to account
+        direct_create_invite(&target, addr(&target), addr(&target));
+
+        direct_create_account(
+            &target,
+            addr(&target),
+            utf8(b"syamimomo")
+        );
+
+        direct_create_subnet(
+            &target,
+            addr(&target),
+            12,
+        );
+        direct_create_subnet(
+            &target,
+            addr(&target),
+            13,
+        );
+
+        let store = borrow_global<AccountStore>(signer::address_of(&target));
+        let accounts = &store.accounts;
+        let acc = table::borrow(accounts, AccountKey {owner: signer::address_of(&target)});
+
+        assert!(vector::length(&acc.subnets) == 2, ENO_MESSAGE);
+
+        let subnet = vector::borrow(&acc.subnets, 0);
+        let subnet2 = vector::borrow(&acc.subnets, 1);
+        assert!(subnet.id == 12, ENO_MESSAGE);
+        assert!(subnet2.id == 13, ENO_MESSAGE);
     }
 
     #[test(account = @0x42, target = @0x1)]
