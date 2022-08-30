@@ -23,7 +23,7 @@ export function links() {
 
 export const meta: MetaFunction = () => ({
     charset: "utf-8",
-    title: "Machikado Network Website",
+    title: "まちカドネットワーク 公式ウェブサイト",
     viewport: "width=device-width,initial-scale=1",
 });
 
@@ -35,7 +35,7 @@ export default function App() {
     })
 
     return (
-        <html lang="en">
+        <html lang="ja">
         <head>
             <Meta/>
             <Links/>
