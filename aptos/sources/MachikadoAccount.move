@@ -38,6 +38,7 @@ module MachikadoNetwork::MachikadoAccount {
 
     const ENO_REMAIN_INVITE_COUNT: u64 = 400;
     const ENO_REMAIN_SUBNET_COUNT: u64 = 401;
+    const EINVITE_ALREADY_USED: u64 = 402;
 
     struct TincNode has store, copy, drop {
         // tinc host name e.g. syamimomo
@@ -129,6 +130,11 @@ module MachikadoNetwork::MachikadoAccount {
         if (creator_addr != target) {
             // Check Invite
             assert!(table::contains(invites, InviteKey {invitee: creator_addr}), error::not_found(EINVITE_NOT_FOUND));
+            let invite = table::borrow(invites, InviteKey {invitee: creator_addr});
+            assert!(!Invite::is_used(invite), EINVITE_ALREADY_USED);
+
+            // Set Invite used to true
+            table::upsert(invites, InviteKey {invitee: creator_addr}, Invite::set_used(invite, true))
         };
 
         table::add(
