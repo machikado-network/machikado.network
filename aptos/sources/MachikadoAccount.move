@@ -341,7 +341,7 @@ module MachikadoNetwork::MachikadoAccount {
 
         // Validate Argument
         // subnet is 0 < id <= 255
-        assert!(0 < id && 255 < id, error::invalid_argument(EINVALID_SUBNET_RANGE));
+        assert!(0 < id && 255 > id, error::invalid_argument(EINVALID_SUBNET_RANGE));
 
         assert!(exists<AccountStore>(target), error::not_found(EACCOUNT_STORE_NOT_FOUND));
 
