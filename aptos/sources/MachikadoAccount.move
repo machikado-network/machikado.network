@@ -113,8 +113,9 @@ module MachikadoNetwork::MachikadoAccount {
         let creator_addr = signer::address_of(creator);
 
         // Validate arguments
-        // Name length is less than 32.
+        // Name length is grather than 3 and less than 32.
         assert!(string::length(&name) <= 32, error::invalid_argument(EINVALID_ACCOUNT_NAME_LENGTH));
+        assert!(string::length(&name) >= 3, error::invalid_argument(EINVALID_ACCOUNT_NAME_LENGTH));
 
         assert!(exists<AccountStore>(target), error::not_found(EACCOUNT_STORE_NOT_FOUND));
 
@@ -171,6 +172,11 @@ module MachikadoNetwork::MachikadoAccount {
         // Check name duplicate
         assert!(option::is_none(&find_account_key_by_name(accounts, addresses, new_name)), error::already_exists(ENAME_ALREADY_EXISTS));
 
+        // Validate arguments
+        // Name length is grather than 3 and less than 32.
+        assert!(string::length(&new_name) <= 32, error::invalid_argument(EINVALID_ACCOUNT_NAME_LENGTH));
+        assert!(string::length(&new_name) >= 3, error::invalid_argument(EINVALID_ACCOUNT_NAME_LENGTH));
+
         // Change name
         let account = table::borrow_mut(accounts, AccountKey {owner: creator_addr});
         account.name = new_name;
@@ -186,6 +192,7 @@ module MachikadoNetwork::MachikadoAccount {
 
         // Validate arguments
         assert!(string::length(&name) <= 32, error::invalid_argument(EINVALID_NODE_NAME_LENGTH));
+        assert!(string::length(&name) > 2, error::invalid_argument(EINVALID_NODE_NAME_LENGTH));
         assert!(is_valide_name_charactors(name), error::invalid_argument(EINVALID_NAME_CHARACTOR));
 
         assert!(exists<AccountStore>(target), error::not_found(EACCOUNT_STORE_NOT_FOUND));

@@ -3,7 +3,7 @@ name = "MachikadoNetwork"
 version = "1.0.0"
 
 [addresses]
-MachikadoNetwork = "0xfd320e6f9395c747dbf54cadea98426ec63716b6fe97ee0f8ce83eb1dda9d71a"
+MachikadoNetwork = "_"
 
 [dependencies.AptosFramework]
 git = 'https://github.com/aptos-labs/aptos-core.git'
