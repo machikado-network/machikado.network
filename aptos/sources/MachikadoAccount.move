@@ -182,6 +182,27 @@ module MachikadoNetwork::MachikadoAccount {
         account.name = new_name;
     }
 
+    public fun direct_set_account_additional_field(
+        creator: &signer,
+        target: address,
+        key: String,
+        value: String,
+    ) acquires AccountStore {
+        let creator_addr = signer::address_of(creator);
+
+        assert!(exists<AccountStore>(target), error::not_found(EACCOUNT_STORE_NOT_FOUND));
+
+        let store = borrow_global_mut<AccountStore>(target);
+        let accounts = &mut store.accounts;
+
+        // Check user has account
+        assert!(table::contains(accounts, AccountKey {owner: creator_addr}), error::not_found(EACCOUNT_NOT_FOUND));
+
+        let account = table::borrow_mut(accounts, AccountKey {owner: creator_addr});
+        let fields = &mut account.additional_fields;
+        table::upsert(fields, key, value);
+    }
+
     public fun direct_create_node(
         creator: &signer,
         target: address,
@@ -553,6 +574,32 @@ module MachikadoNetwork::MachikadoAccount {
         let accounts = &store.accounts;
         let acc = table::borrow(accounts, AccountKey {owner: signer::address_of(&account)});
         assert!(acc.name == utf8(b"mikan"), ENO_MESSAGE);
+    }
+
+    #[test(account = @0x42, target = @0x1)]
+    public entry fun test_set_account_additional_field(account: signer, target: signer) acquires AccountStore {
+        direct_create_account_store(&target);
+        // Create invite from target to account
+        direct_create_invite(&target, addr(&target), addr(&account));
+
+        direct_create_account(
+            &account,
+            signer::address_of(&target),
+            utf8(b"syamimomo")
+        );
+        direct_set_account_additional_field(
+            &account,
+            signer::address_of(&target),
+            utf8(b"discord"),
+            utf8(b"Sumidora#8931")
+        );
+        let store = borrow_global<AccountStore>(signer::address_of(&target));
+        let accounts = &store.accounts;
+        let acc = table::borrow(accounts, AccountKey {owner: signer::address_of(&account)});
+
+        let fields = &acc.additional_fields;
+        let data = table::borrow(fields, utf8(b"discord"));
+        assert!(data == &utf8(b"Sumidora#8931"), ENO_MESSAGE);
     }
 
     #[test(account = @0x42, target = @0x1)]
