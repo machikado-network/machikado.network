@@ -1,0 +1,10 @@
+version:  "3.9"
+services:
+  fakeroot:
+    build: .
+    privileged: true
+    hostname: fakeroot
+  gateway:
+    build: .
+    privileged: true
+    hostname: gateway
