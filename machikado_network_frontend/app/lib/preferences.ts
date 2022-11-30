@@ -1,1 +1,0 @@
-export const PUBLISHER = "0x453eb7d4a2d829f0a5e96e4f3cf041ccface34143ba5a28b7286836c4484b763"
